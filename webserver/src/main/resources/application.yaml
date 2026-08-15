@@ -1,0 +1,13 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: discord2
+  datasource:
+    url: jdbc:mysql://localhost:3306/meu_banco?createDatabaseIfNotExist=true
+    username: ${DATABASE_USERNAME:user}
+    password: ${DATABASE_PASSWORD:password}
+  jpa:
+    hibernate:
+      ddl-auto: update
