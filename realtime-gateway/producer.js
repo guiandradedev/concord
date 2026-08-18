@@ -14,12 +14,12 @@ async function run() {
     console.log("Producer conectado");
 
     const result = await producer.send({
-      topic: "videos",
+      topic: "my-topic",
       messages: [
         {
-          key: "video-123",
+          key: "my-topic",
           value: JSON.stringify({
-            videoId: "video-123",
+            videoId: "video-123a",
             status: "PROCESSING",
           }),
         },

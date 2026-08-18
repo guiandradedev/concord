@@ -13,7 +13,7 @@ async function run() {
   await consumer.connect();
 
   await consumer.subscribe({
-    topic: "videos",
+    topic: "my-topic",
     fromBeginning: true,
   });
 
@@ -23,7 +23,7 @@ async function run() {
         topic,
         partition,
         key: message.key?.toString(),
-        value: message.value?.toString(),
+        value: JSON.parse(message.value.toString()),
       });
     },
   });
