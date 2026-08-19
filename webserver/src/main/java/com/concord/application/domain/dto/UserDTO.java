@@ -1,4 +1,4 @@
-package com.concord.application.dto;
+package com.concord.application.domain.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;

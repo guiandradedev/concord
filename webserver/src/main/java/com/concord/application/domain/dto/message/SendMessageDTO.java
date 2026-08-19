@@ -1,7 +1,8 @@
-package com.concord.application.dto.message;
+package com.concord.application.domain.dto.message;
 import com.concord.application.domain.model.MessageEntity;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,7 +24,7 @@ public class SendMessageDTO {
     @NotBlank(message="Target is required")
     private String target;
 
-    @NotBlank(message="Type is required")
+    @NotNull(message="Type is required")
     private FromType type;
 
     @NotBlank(message="Content is required")

@@ -14,7 +14,9 @@ export class MessageConsumer extends Consumer {
             await consumer.run({
                 eachMessage: async ({ topic, partition, message }) => {
                     console.log({
-                        value: message.value?.toString(),
+                        topic,
+                        partition,
+                        value: JSON.parse(JSON.parse(message.value?.toString() || "{}")),
                     });
                 },
             });

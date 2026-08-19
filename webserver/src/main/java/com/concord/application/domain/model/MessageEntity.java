@@ -2,8 +2,12 @@ package com.concord.application.domain.model;
 
 import java.util.UUID;
 
+import com.concord.application.domain.dto.message.FromType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -13,8 +17,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import com.concord.application.dto.message.FromType;
 
 @Entity
 @Table(name = "messages")
@@ -37,6 +39,7 @@ public class MessageEntity {
     @Column(nullable = false)
     private String receiver; // Implementar FK
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private FromType type;
 }

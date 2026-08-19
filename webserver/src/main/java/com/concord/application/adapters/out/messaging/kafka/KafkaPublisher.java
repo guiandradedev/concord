@@ -1,14 +1,9 @@
 package com.concord.application.adapters.out.messaging.kafka;
 
-import java.nio.charset.StandardCharsets;
-
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import com.concord.application.domain.ports.out.MessagePublisher;
-import com.concord.application.dto.message.SendMessageDTO;
 import com.concord.application.exception.PublishException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -30,5 +25,4 @@ public class KafkaPublisher implements MessagePublisher {
             throw new PublishException("Failed to publish message " + message.id(), e);
         }
     }
-
 }
