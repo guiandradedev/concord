@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.concord.application.dto.message.SendMessageDTO;
+import com.concord.application.exception.PublishException;
 import com.concord.application.service.MessageService;
 
 import lombok.RequiredArgsConstructor;
@@ -24,12 +25,12 @@ public class MessageController {
 
     @PostMapping({"", "/"})
     @ResponseStatus(HttpStatus.CREATED)
-    public void sendMessage(@RequestBody SendMessageDTO dto) {
+    public void sendMessage(@RequestBody SendMessageDTO dto) throws PublishException {
         messageService.send(dto);
     }
 
     @GetMapping({"", "/"})
-    public String getMethodName() {
+    public String getMethodName() throws PublishException{
         // messageService.send("Oi");
         SendMessageDTO dto = new SendMessageDTO();
         dto.setFrom("user1");

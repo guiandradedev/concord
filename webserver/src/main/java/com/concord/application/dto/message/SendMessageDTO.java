@@ -1,5 +1,5 @@
 package com.concord.application.dto.message;
-import com.concord.application.model.MessageEntity;
+import com.concord.application.domain.model.MessageEntity;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

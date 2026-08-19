@@ -1,4 +1,4 @@
-package com.concord.application.model;
+package com.concord.application.domain.model;
 
 import java.util.UUID;
 

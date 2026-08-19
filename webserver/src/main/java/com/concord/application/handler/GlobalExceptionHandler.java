@@ -3,6 +3,8 @@ package com.concord.application.handler;
 import com.concord.application.exception.AlreadyExistsException;
 import com.concord.application.exception.ErrorResponse;
 import com.concord.application.exception.NotFoundException;
+import com.concord.application.exception.PublishException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,7 +26,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
-
+    
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex) {
         ErrorResponse response = ErrorResponse.builder()

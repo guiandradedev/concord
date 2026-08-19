@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch --env-file .env src/index.ts",
+    "dev2": "tsx watch --env-file .env src/teste.ts",
     "consumer": "node consumer.js"
   },
   "keywords": [],
@@ -13,8 +14,7 @@
   "type": "commonjs",
   "dependencies": {
     "dotenv": "^17.4.2",
-    "kafkajs": "^2.2.4",
-    "socket.io": "^4.8.3"
+    "kafkajs": "^2.2.4"
   },
   "devDependencies": {
     "@types/kafkajs": "^1.8.2",
