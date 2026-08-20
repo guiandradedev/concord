@@ -60,7 +60,7 @@ public class MessageService {
         messagePublisher.publish(message);
     }
 
-    public void getMessagesFromUser(String fromUserId, String toUserId) {
+    public List<MessageEntity> getMessagesFromUser(String fromUserId, String toUserId) {
         // Lista os usuários e grupos recentes com quem o usuário logado trocou mensagens
         System.out.println("Teste");
         List<MessageEntity> messages = messageRepository.findBySenderAndReceiverAndType(fromUserId, toUserId, FromType.USER);
@@ -72,6 +72,6 @@ public class MessageService {
             message.getReceiver(),
             message.getType(),
             message.getContent()));
-
+        return messages;
     }
 }
