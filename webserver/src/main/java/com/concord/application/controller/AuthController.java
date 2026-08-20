@@ -41,11 +41,11 @@ public class AuthController {
         var refreshToken = tokenService.generateRefreshToken(user);
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
-                .httpOnly(true) // Proíbe o JavaScript do frontend de ler este cookie
-                .secure(false) // USE TRUE EM PRODUÇÃO (exige HTTPS). False para testes em localhost
-                .path("/") // O cookie é válido para todas as rotas do site
-                .maxAge(7 * 24 * 60 * 60) // Expira em 7 dias (em segundos)
-                .sameSite("Strict") // Protege contra ataques CSRF
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(7 * 24 * 60 * 60)
+                .sameSite("Strict")
                 .build();
 
         return ResponseEntity.ok()
@@ -54,11 +54,15 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity refresh(@RequestBody @Valid RefreshTokenDTO data) {
-        var email = tokenService.validateToken(data.refreshToken());
+    public ResponseEntity<TokenResponseDTO> refresh(
+            @CookieValue(name = "refreshToken", required = false) String refreshToken) {
 
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        var email = tokenService.validateToken(refreshToken);
         if (email.isEmpty()) {
-            // Token inválido ou expirado
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -68,8 +72,19 @@ public class AuthController {
         }
 
         var newAccessToken = tokenService.generateAccessToken(user);
+        var newRefreshToken = tokenService.generateRefreshToken(user);
 
-        return ResponseEntity.ok(new TokenResponseDTO(newAccessToken, data.refreshToken()));
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", newRefreshToken)
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(7 * 24 * 60 * 60)
+                .sameSite("Strict")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(new TokenResponseDTO(newAccessToken, null));
     }
 
     @PostMapping("/register")
@@ -88,7 +103,6 @@ public class AuthController {
                 .role(UserRole.USER)
                 .build();
 
-        // 4. Salva no banco de dados
         userRepository.save(newUser);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
