@@ -6,19 +6,28 @@ import { useForm, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
+import { useMemo } from "react";
 
-const signinSchema = z
-  .object({
-    email: z.string().email("Email inválido").nonempty("Email é obrigatório"),
-    password: z.string().nonempty("Senha é obrigatório"),
-  })
-
-export type SignInFormInputs = z.infer<typeof signinSchema>;
+// Tipagem do formulário
+const getSigninSchema = (t: (key: string, options?: any) => string) =>
+  z.object({
+    email: z
+      .email(t("login.email.error_email_invalid"))
+      .nonempty(t("login.email.error_email_required")),
+    password: z
+      .string()
+      .nonempty(t("login.password.error_password_required")),
+  });
+export type SignInFormInputs = z.infer<ReturnType<typeof getSigninSchema>>;
 
 export default function LoginScreen() {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation(["public", "common"]);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Salva o schema para não recriar toda vez que muda a linguagem
+  const signinSchema = useMemo(() => getSigninSchema(t), [t]);
+
   const form: UseFormReturn<SignInFormInputs> = useForm<SignInFormInputs>({
     resolver: zodResolver(signinSchema),
     defaultValues: {
@@ -40,7 +49,7 @@ export default function LoginScreen() {
             <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <GalleryVerticalEndIcon className="size-4" />
             </div>
-            {t("title")}
+            {t("common:title")}
           </a>
         </div>
         <div className="flex flex-1 items-center justify-center">

@@ -1,17 +1,55 @@
 {
   "login": {
-    "title": "Entre em sua conta",
-    "description": "Insira seu email e senha para acessar sua conta.",
-    "emailLabel": "Email",
-    "emailPlaceholder": "exemplo@email.com",
-    "password": {
-      "input": "Senha",
-      "forgotPassword": "Esqueceu sua senha?"
+    "title": "Sign in to your account",
+    "description": "Enter your email and password to access your account.",
+    "email": {
+      "label": "Email",
+      "placeholder": "example@email.com",
+      "error_email_required": "Email is required",
+      "error_email_invalid": "Email is invalid"
     },
-    "signInButton": "Entrar",
+    "password": {
+      "label": "Password",
+      "placeholder": "Password",
+      "error_password_required": "Password is required",
+      "forgotPassword": "Forgot your password?"
+    },
+    "signInButton": "Sign in",
     "signUp": {
-      "text": "Não tem uma conta?",
-      "link": "Cadastre-se"
+      "text": "Don't have an account?",
+      "link": "Sign up"
     }
+  },
+  "register": {
+    "title": "Create your account",
+    "description": "Fill in the form below to create your account.",
+    "name": {
+      "label": "Full Name",
+      "placeholder": "John Doe",
+      "error_name_required": "Name is required"
+    },
+    "email": {
+      "label": "Email",
+      "placeholder": "example@email.com",
+      "error_email_required": "Email is required",
+      "error_email_invalid": "Email is invalid",
+      "error_email_already_exists": "This email is already in use"
+    },
+    "password": {
+      "label": "Password",
+      "placeholder": "Password",
+      "error_password_required": "Password is required",
+      "error_password_min_length": "Password must be at least 6 characters long",
+      "confirmPassword": {
+        "label": "Confirm Password",
+        "placeholder": "Confirm Password",
+        "error_confirmPassword_required": "Confirm Password is required",
+        "error_confirmPassword_mismatch": "Passwords do not match"
+      }
+    },
+    "createAccountButton": "Create Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "signInLink": "Sign in",
+    "error_generic": "An error occurred while creating your account. Please try again."
   }
 }

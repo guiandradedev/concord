@@ -12,8 +12,8 @@ if (isBrowser) {
 void i18n
   .use(initReactI18next)
   .init({
-    ...(isBrowser ? {} : { lng: "pt-BR" }),
-    fallbackLng: "pt-BR",
+    ...(isBrowser ? {} : { lng: "en" }),
+    fallbackLng: "en",
     supportedLngs: ["en", "pt-BR"],
     ns: ["common", "public"],
     defaultNS: "common",

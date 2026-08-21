@@ -26,14 +26,14 @@ export function LoginForm({
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">{t('login.title')}</h1>
-          <p className="text-sm text-balance text-muted-foreground">{ t('login.description')}</p>
+          <p className="text-sm text-balance text-muted-foreground">{t('login.description')}</p>
         </div>
         <Field>
-          <FieldLabel htmlFor="email">{t("login.emailLabel", "Email")}</FieldLabel>
+          <FieldLabel htmlFor="email">{t("login.email.label", "Email")}</FieldLabel>
           <Input
             id="email"
             type="email"
-            placeholder={t("login.emailPlaceholder", "exemplo@email.com")}
+            placeholder={t("login.email.placeholder", "exemplo@email.com")}
             {...form.register("email")}
           />
           {form.formState.errors.email && (
@@ -65,7 +65,7 @@ export function LoginForm({
         <Field>
           <FieldDescription className="text-center">
             {t("login.signUp.text")} {" "}
-            <a href="#" className="underline underline-offset-4">
+            <a href="/signup" className="underline underline-offset-4">
               {t("login.signUp.link")}
             </a>
           </FieldDescription>

@@ -11,7 +11,8 @@ type AuthContextProps = {
     user: User | null,
     loading: boolean,
     login: (email: string, password: string) => Promise<void>,
-    logout: () => void
+    logout: () => void,
+    register: (name: string, email: string, password: string) => Promise<void>
 }
 const AuthContext = createContext<AuthContextProps | null>(null);
 
@@ -88,19 +89,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }, []);
 
-    const logout = useCallback(() => {
-        clearAccessToken();
-        setIsAuthenticated(false);
-        setUser(null);
+    const logout = useCallback(async () => {
+        try {
+            await api.post("/auth/logout");
+        } catch (error) {
+            console.error("Erro ao limpar sessão no servidor", error);
+        } finally {
+            clearAccessToken();
+            setIsAuthenticated(false);
+            setUser(null);
+        }
     }, []);
+
+    const register = useCallback(async (name: string, email: string, password: string) => {
+        try {
+            await api.post("/auth/register", {
+                name,
+                email,
+                password,
+            });
+            // Auto login on successful registration (201 Created)
+            await login(email, password);
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 409) {
+                    throw new Error("EMAIL_EXISTS");
+                }
+            }
+            throw error;
+        }
+    }, [login])
+
 
     const contextValue: AuthContextProps = useMemo(() => ({
         isAuthenticated,
         user,
         loading,
         login,
-        logout
-    }), [isAuthenticated, user, loading, login, logout]);
+        logout,
+        register
+    }), [isAuthenticated, user, loading, login, logout, register]);
 
 
     return (
