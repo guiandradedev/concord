@@ -7,6 +7,8 @@ export default [
         route('login', 'routes/_public/_auth/login.tsx'),
         route('signup', 'routes/_public/_auth/signup.tsx'),
     ]),
-    
-    route('app', 'routes/_private/app.tsx'),
+
+    layout("routes/_private/layout.tsx", [
+        route('app', 'routes/_private/app.tsx'),
+    ]),
 ] satisfies RouteConfig;

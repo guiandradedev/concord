@@ -1,6 +1,6 @@
-import { Mensagens } from "~/pages/public/Home/mensagens";
 import { useAuth } from "~/contexts/AuthContext";
 import { Navigate } from "react-router";
+import App from "~/pages/private/App";
 
 export default function AppPage() {
   const { isAuthenticated, loading } = useAuth();
@@ -13,5 +13,5 @@ export default function AppPage() {
     return <Navigate to="/login" replace />;
   }
 
-  return <Mensagens />;
+  return <App />;
 }

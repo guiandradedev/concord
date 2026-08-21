@@ -44,7 +44,7 @@ export function LoginForm({
         </Field>
         <Field>
           <div className="flex items-center">
-            <FieldLabel htmlFor="password">{t("login.password.input")}</FieldLabel>
+            <FieldLabel htmlFor="password">{t("login.password.label")}</FieldLabel>
             <a
               href="#"
               className="ml-auto text-sm underline-offset-4 hover:underline"

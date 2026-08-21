@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { Mensagens } from "./mensagens";
 import { useAuth } from "~/contexts/AuthContext";
 
 export function HomeScreen() {
@@ -38,9 +37,7 @@ export function HomeScreen() {
                 }
             </div>
 
-            <div>
-                <Mensagens />
-            </div>
+            <h1>Home</h1>
 
         </main>
     );
