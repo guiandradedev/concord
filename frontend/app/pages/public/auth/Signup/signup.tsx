@@ -1,5 +1,5 @@
 import { GalleryVerticalEndIcon } from "lucide-react";
-import { SignupForm } from "~/pages/Signup/signup-form";
+import { SignupForm } from "./signup-form";
 
 export default function SignupScreen() {
     return (

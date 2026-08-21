@@ -1,0 +1,17 @@
+{
+  "login": {
+    "title": "Entre em sua conta",
+    "description": "Insira seu email e senha para acessar sua conta.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "exemplo@email.com",
+    "password": {
+      "input": "Senha",
+      "forgotPassword": "Esqueceu sua senha?"
+    },
+    "signInButton": "Entrar",
+    "signUp": {
+      "text": "Não tem uma conta?",
+      "link": "Cadastre-se"
+    }
+  }
+}
