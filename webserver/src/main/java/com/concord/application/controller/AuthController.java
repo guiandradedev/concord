@@ -122,5 +122,4 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, cleanCookie.toString())
                 .build();
     }
-
 }
