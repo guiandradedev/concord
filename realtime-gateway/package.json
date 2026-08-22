@@ -14,7 +14,8 @@
   "type": "commonjs",
   "dependencies": {
     "dotenv": "^17.4.2",
-    "kafkajs": "^2.2.4"
+    "kafkajs": "^2.2.4",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/kafkajs": "^1.8.2",
