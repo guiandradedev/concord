@@ -84,6 +84,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
     }, []);
 
+    useEffect(() => {
+        async function getUser() {
+            if (isAuthenticated && user == null) {
+                // requisicao para o back
+                // setUser()
+            }
+        }
+    }, [isAuthenticated, user])
+
     const login = useCallback(async (email: string, password: string): Promise<void> => {
         try {
             const response = await api.post<UserAuthenticateResponse>("/auth/login", {

@@ -1,5 +1,6 @@
 import { Link, Navigate, Outlet } from "react-router";
 import { useAuth } from "~/contexts/AuthContext";
+import { SocketProvider } from "~/contexts/SocketContext";
 
 export default function PrivateLayout() {
     const { isAuthenticated, loading, logout } = useAuth();
@@ -24,7 +25,9 @@ export default function PrivateLayout() {
             </div>
 
             <div className="flex-1 p-4">
-                <Outlet />
+                <SocketProvider>
+                    <Outlet />
+                </SocketProvider>
             </div>
         </main>
     )
