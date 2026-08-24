@@ -1,5 +1,7 @@
 package com.concord.application.domain.dto;
 
+import java.util.UUID;
+
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
@@ -10,9 +12,8 @@ import lombok.*;
 @Builder
 @ToString
 public class UserDTO {
-    @NotBlank(message = "Name is required")
+    private UUID id;
     private String name;
-
-    @NotBlank(message = "Email is required")
     private String email;
+    private String username;
 }

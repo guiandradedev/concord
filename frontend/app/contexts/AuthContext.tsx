@@ -4,8 +4,11 @@ import api from "~/lib/axios";
 import { clearAccessToken, getAccessToken, setAccessToken } from "~/lib/auth-token";
 
 type User = {
-    name: string
+    id: string;
+    name: string;
+    email: string;
 }
+
 type AuthContextProps = {
     isAuthenticated: boolean,
     user: User | null,
@@ -26,15 +29,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+    const fetchUser = async () => {
+        const response = await api.get<User>("/users/me");
+            setUser(response.data);
+    }
+
+
     useEffect(() => {
         let active = true;
 
         async function restoreSession() {
             const token = getAccessToken();
             if (token) {
-                if (!active) return;
-                setIsAuthenticated(true);
-                setLoading(false);
+                try {
+                    await fetchUser();
+                    if (!active) return;
+                    setIsAuthenticated(true);
+                } catch{
+                    clearAccessToken();
+                    setIsAuthenticated(false);
+                    setUser(null);
+                } finally {
+                    if (active) setLoading(false);
+                }
                 return;
             }
 
@@ -44,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                 if (nextAccessToken) {
                     setAccessToken(nextAccessToken);
+                    await fetchUser();
                     if (!active) return;
                     setIsAuthenticated(true);
                 }
@@ -79,8 +97,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
 
             setAccessToken(accessToken);
+            await fetchUser();
             setIsAuthenticated(true);
-            setUser({ name: email });
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 throw error;
