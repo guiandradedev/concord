@@ -1,0 +1,195 @@
+Vagrant.configure("2") do |config|
+
+    # variáveis comuns
+    is_arm = RUBY_PLATFORM.include?("arm64") || RUBY_PLATFORM.include?("aarch64")
+    BOX = is_arm ? "bento/ubuntu-22.04" : "ubuntu/focal64"
+
+=begin ESTRUTURA GERAL
+        CONFIGS GERAIS:
+        Box do Ubuntu 22.04 LTS para Mac ou Ubuntu 20.04 LTS para demais (compatibilidade).
+        Hostname da VM adequado ao nome da VM.
+
+        INTERFACES DE REDE:
+        Port forwarding para conexão SSH da máquina host.
+        Ponto de acesso à rede privada para conexão entre as VMs.
+        Port forwarding para acesso à rede externa apenas para o proxy reverso/web.
+    
+        CONFIGS VBOX:
+        Ativação da GUI (compatibilidade).
+        Recursos alocados (memória, cpu).
+        Nome da VM no VirtualBox adequado ao nome da VM.
+
+        SHELL SCRIPT:
+        Atualização da máquina.
+        Instalação de pacotes.
+        Clonagem do repositório.
+        Configurações específicas.
+=end
+
+    # VM 1: Proxy Reverso + WEB Estático
+    config.vm.define "proxy" do |proxy|
+        # configs gerais
+        proxy.vm.box = BOX
+        proxy.vm.hostname = "proxy"
+
+        # interfaces de rede
+        proxy.vm.network "forwarded_port", guest: 22, host: "2230"
+        proxy.vm.network "private_network", ip: "10.20.30.1", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+        proxy.vm.network "forwarded_port", guest: 80, host: "8069"
+
+        # configs vbox
+        proxy.vm.provider "virtualbox" do |vb|
+            vb.gui = !is_arm
+            vb.memory = "1024"
+            vb.cpus = 1
+            vb.name = "proxy"
+        end
+
+        # shell script
+        proxy.vm.provision "shell", inline: <<-SHELL
+            sudo apt-get -y update
+
+            apt-get install -y git
+            
+            mkdir -p /home/application
+            cd /home/application
+            if [ ! -d /home/application/concord ]; then
+                git clone https://github.com/guiandradedev/concord.git
+            fi
+            # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
+        SHELL
+    end
+
+    # VM 2: API
+    config.vm.define "api" do |api|
+        # configs gerais
+        api.vm.box = BOX
+        api.vm.hostname = "api"
+
+        # interfaces de rede
+        api.vm.network "forwarded_port", guest:22, host: "2231"
+        api.vm.network "private_network", ip: "10.20.30.2", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+
+        # configs vbox
+        api.vm.provider "virtualbox" do |vb|
+            vb.gui = !is_arm
+            vb.memory = "1024"
+            vb.cpus = 1
+            vb.name = "api"
+        end
+
+        # shell script
+        api.vm.provision "shell", inline: <<-SHELL
+            sudo apt-get -y update
+
+            apt-get install -y git
+            
+            mkdir -p /home/application
+            cd /home/application
+            if [ ! -d /home/application/concord ]; then
+                git clone https://github.com/guiandradedev/concord.git
+            fi
+            # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
+        SHELL
+    end
+
+    # VM 3: Banco Relacional
+    config.vm.define "db" do |db|
+        # configs gerais
+        db.vm.box = BOX
+        db.vm.hostname = "db"
+
+        # interfaces de rede
+        db.vm.network "forwarded_port", guest:22, host: "2234"
+        db.vm.network "private_network", ip: "10.20.30.3", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+        
+        # configs vbox
+        db.vm.provider "virtualbox" do |vb|
+            vb.gui = !is_arm
+            vb.memory = "1024"
+            vb.cpus = 1
+            vb.name = "db"
+        end
+
+        # shell script
+        db.vm.provision "shell", inline: <<-SHELL
+            sudo apt-get -y update
+
+            apt-get install -y git
+            
+            mkdir -p /home/application
+            cd /home/application
+            if [ ! -d /home/application/concord ]; then
+                git clone https://github.com/guiandradedev/concord.git
+            fi
+            # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
+        SHELL
+    end
+
+    # VM 4: Broker de Mensagens
+    config.vm.define "broker" do |broker|
+        # configs gerais
+        broker.vm.box = BOX
+        broker.vm.hostname = "broker"
+
+        # interfaces de rede
+        broker.vm.network "forwarded_port", guest:22, host: "2232"
+        broker.vm.network "private_network", ip: "10.20.30.4", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+
+        # configs vbox
+        broker.vm.provider "virtualbox" do |vb|
+            vb.gui = !is_arm
+            vb.memory = "1024"
+            vb.cpus = 1
+            vb.name = "broker"
+        end
+
+        # shell script
+        broker.vm.provision "shell", inline: <<-SHELL
+            sudo apt-get -y update
+
+            apt-get install -y git
+            
+            mkdir -p /home/application
+            cd /home/application
+            if [ ! -d /home/application/concord ]; then
+                git clone https://github.com/guiandradedev/concord.git
+            fi
+            # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
+        SHELL
+    end
+
+    # VM 5: Gateway Realtime
+    config.vm.define "gateway" do |gateway|
+        # configs gerais
+        gateway.vm.box = BOX
+        gateway.vm.hostname = "gateway"
+
+        # interfaces de rede
+        gateway.vm.network "forwarded_port", guest:22, host: "2233"
+        gateway.vm.network "private_network", ip: "10.20.30.5", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+
+        # configs vbox
+        gateway.vm.provider "virtualbox" do |vb|
+            vb.gui = !is_arm
+            vb.memory = "1024"
+            vb.cpus = 1
+            vb.name = "gateway"
+        end
+
+        # shell script
+        gateway.vm.provision "shell", inline: <<-SHELL
+            sudo apt-get -y update
+
+            apt-get install -y git
+            
+            mkdir -p /home/application
+            cd /home/application
+            if [ ! -d /home/application/concord ]; then
+                git clone https://github.com/guiandradedev/concord.git
+            fi
+            # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
+        SHELL
+    end
+
+end
