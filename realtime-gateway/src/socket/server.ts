@@ -27,6 +27,8 @@ io.on("connection", (socket: Socket) => {
     console.log(`User ${userId} connected`);
   }
 
+  console.log(connectedUsers);
+
   socket.on("disconnect", () => {
     if (userId) {
 
