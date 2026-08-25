@@ -29,9 +29,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    const fetchUser = async () => {
+    const fetchUser: () => Promise<User> = async () => {
         const response = await api.get<User>("/users/me");
-            setUser(response.data);
+        return response.data;
     }
 
 
@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const token = getAccessToken();
             if (token) {
                 try {
-                    await fetchUser();
+                    setUser(await fetchUser());
                     if (!active) return;
                     setIsAuthenticated(true);
                 } catch{
@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                 if (nextAccessToken) {
                     setAccessToken(nextAccessToken);
-                    await fetchUser();
+                    setUser(await fetchUser());
                     if (!active) return;
                     setIsAuthenticated(true);
                 }
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         async function getUser() {
             if (isAuthenticated && user == null) {
                 // requisicao para o back
-                // setUser()
+                setUser(await fetchUser());
             }
         }
     }, [isAuthenticated, user])
@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
 
             setAccessToken(accessToken);
-            await fetchUser();
+            setUser(await fetchUser());
             setIsAuthenticated(true);
         } catch (error) {
             if (axios.isAxiosError(error)) {

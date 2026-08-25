@@ -10,5 +10,6 @@ export default [
 
     layout("routes/_private/layout.tsx", [
         route('app', 'routes/_private/app.tsx'),
+        route('profile', 'routes/_private/profile.tsx'),
     ]),
 ] satisfies RouteConfig;

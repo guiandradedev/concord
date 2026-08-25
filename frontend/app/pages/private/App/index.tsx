@@ -1,58 +1,26 @@
-// pages/private/App/index.tsx[cite: 3]
-
-import { useEffect, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import { useEffect } from "react";
 import { useAuth } from "~/contexts/AuthContext";
+import { useNotifier } from "~/contexts/NotifierContext";
 import { useSocket } from "~/contexts/SocketContext";
 
 export default function App() {
     const { user } = useAuth();
-    const [messages, setMessages] = useState<any[]>([]);
-    // const { } = useSocket()
+    const { } = useNotifier()
+    const { onMessage } = useSocket();
 
     useEffect(() => {
-        if (!user) return;
-
-        const socket: Socket = io("ws://localhost:3000", {
-            auth: {
-                userId: user.id
-            }
+        const unsubscribe = onMessage((data) => {
+            console.log("App: message received", data);
         });
-
-        socket.on("connect", () => {
-            console.log("Conectado ao Gateway. Socket ID:", socket.id);
-        });
-
-        socket.on("new-message", (data) => {
-            console.log("Nova mensagem via Kafka/WebSocket:", data);
-
-            setMessages((prevMessages) => [...prevMessages, data]);
-        });
-
-        socket.on("disconnect", () => {
-            console.log("Desconectado do WebSocket");
-        });
-
-        return () => {
-            socket.disconnect();
-        };
-    }, []);
+        return unsubscribe;
+    }, [onMessage]);
 
     return (
         <div className="p-6 w-full max-w-2xl">
             <h1 className="text-2xl font-bold mb-4">Chat em Tempo Real</h1>
 
             <div className="flex flex-col gap-2">
-                {messages.length === 0 ? (
-                    <p className="text-gray-500">Nenhuma mensagem recebida ainda...</p>
-                ) : (
-                    messages.map((msg, index) => (
-                        <div key={index} className="p-3 bg-white border border-gray-200 rounded-md shadow-sm">
-                            <span className="font-bold text-blue-600">{msg.sender ?? msg.from}: </span>
-                            <span>{msg.content}</span>
-                        </div>
-                    ))
-                )}
+
             </div>
         </div>
     );
