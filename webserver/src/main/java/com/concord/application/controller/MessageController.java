@@ -18,6 +18,7 @@ import com.concord.application.domain.dto.UserDTO;
 import com.concord.application.domain.dto.message.MessageResponse;
 import com.concord.application.domain.dto.message.SendMessageDTO;
 import com.concord.application.domain.dto.message.SendMessageRequest;
+import com.concord.application.domain.model.MessageEntity;
 import com.concord.application.domain.model.UserEntity;
 import com.concord.application.exception.NotFoundException;
 import com.concord.application.exception.PublishException;
@@ -27,7 +28,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-
 @RestController
 @RequestMapping("/messages")
 @RequiredArgsConstructor
@@ -35,13 +35,12 @@ public class MessageController {
 
     private final MessageService messageService;
 
-    @PostMapping({"", "/"})
+    @PostMapping({ "", "/" })
     @ResponseStatus(HttpStatus.CREATED)
     public void sendMessage(
-        HttpServletRequest request, 
-        @Valid @RequestBody SendMessageRequest dto,
-        @AuthenticationPrincipal UserEntity user
-    ) throws PublishException {
+            HttpServletRequest request,
+            @Valid @RequestBody SendMessageRequest dto,
+            @AuthenticationPrincipal UserEntity user) throws PublishException {
         SendMessageDTO messageDTO = SendMessageDTO.fromRequest(dto, user.getId());
         messageService.sendMessage(messageDTO);
     }
@@ -53,20 +52,15 @@ public class MessageController {
     }
 
     @GetMapping("/user/{userId}")
-    @ResponseStatus(HttpStatus.OK)
-    public List<MessageResponse> getMessagesFromUser(
-        @PathVariable String userId,
-        @AuthenticationPrincipal UserEntity user
-    ) throws NotFoundException {
-        // TODO: add validation: 
-        // - user has permission to get messages from userId
-        
-        UUID toUserId = UUID.fromString(userId);
+    public ResponseEntity<List<MessageEntity>> getMessagesFromUser(
+            @PathVariable String userId,
+            @AuthenticationPrincipal UserEntity currentUser
+    ) {
+        String loggedUserId = currentUser.getId().toString();
 
-        return messageService.getMessagesFromUser(user.getId(), toUserId)
-            .stream()
-            .map(MessageResponse::fromEntity)
-            .toList();
+        List<MessageEntity> historico = messageService.getMessagesFromUser(loggedUserId, userId);
+
+        return ResponseEntity.ok(historico);
     }
 
     @GetMapping("/channel/{channelId}")

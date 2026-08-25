@@ -16,18 +16,27 @@ import com.concord.application.domain.model.UserEntity;
 @Repository
 public interface IMessageRepository extends JpaRepository<MessageEntity, UUID> {
 
-    List<MessageEntity> findBySenderOrReceiver(String sender, String receiver);
+        List<MessageEntity> findBySenderOrReceiver(String sender, String receiver);
 
-    List<MessageEntity> findBySenderAndReceiverAndType(
-            String sender,
-            String receiver,
-            FromType type);
+        List<MessageEntity> findBySenderAndReceiverAndType(
+                        String sender,
+                        String receiver,
+                        FromType type);
 
-    @Query("SELECT DISTINCT CASE WHEN m.sender = :userId THEN m.receiver ELSE m.sender END " +
-           "FROM MessageEntity m " +
-           "WHERE (m.sender = :userId OR m.receiver = :userId) " +
-           "AND m.type IN :types")
-    List<String> findChatPartnersByUserIdAndTypes(
-            @Param("userId") String userId,
-            @Param("types") List<FromType> types);
+        @Query("SELECT m FROM MessageEntity m WHERE " +
+                        "((m.sender = :userA AND m.receiver = :userB) OR " +
+                        "(m.sender = :userB AND m.receiver = :userA)) " +
+                        "AND m.type = :type ORDER BY m.id ASC") // Retorna as mensagens em ordem de criação
+        List<MessageEntity> findConversation(
+                        @Param("userA") String userA,
+                        @Param("userB") String userB,
+                        @Param("type") FromType type);
+
+        @Query("SELECT DISTINCT CASE WHEN m.sender = :userId THEN m.receiver ELSE m.sender END " +
+                        "FROM MessageEntity m " +
+                        "WHERE (m.sender = :userId OR m.receiver = :userId) " +
+                        "AND m.type IN :types")
+        List<String> findChatPartnersByUserIdAndTypes(
+                        @Param("userId") String userId,
+                        @Param("types") List<FromType> types);
 }

@@ -34,26 +34,26 @@ public class MessageService {
 
     private final String privateMessageTopic = "my-topic";
 
-    public List<UserDTO> getRecentChats(UserEntity user){
-    String userId = user.getId().toString();
-    
-    List<MessageEntity> messages = messageRepository.findBySenderOrReceiver(userId, userId);
+    public List<UserDTO> getRecentChats(UserEntity user) {
+        String userId = user.getId().toString();
 
-    Set<UUID> friendIds = messages.stream()
+        List<MessageEntity> messages = messageRepository.findBySenderOrReceiver(userId, userId);
+
+        Set<UUID> friendIds = messages.stream()
                 .map(msg -> msg.getSender().equals(userId) ? msg.getReceiver() : msg.getSender())
                 .map(UUID::fromString)
                 .collect(Collectors.toSet());
 
-    List<UserEntity> recentUsers = userRepository.findAllById(friendIds);
-    
-    return recentUsers.stream()
-            .map(u -> UserDTO.builder()
-                    .id(u.getId())
-                    .name(u.getName())
-                    .email(u.getEmail())
-                    .build())
-            .toList();
-}
+        List<UserEntity> recentUsers = userRepository.findAllById(friendIds);
+
+        return recentUsers.stream()
+                .map(u -> UserDTO.builder()
+                        .id(u.getId())
+                        .name(u.getName())
+                        .email(u.getEmail())
+                        .build())
+                .toList();
+    }
 
     public void sendMessage(SendMessageDTO contentDTO) throws PublishException {
         // Valida os dados do DTO
@@ -101,28 +101,11 @@ public class MessageService {
         messagePublisher.publish(message);
     }
 
-    public List<MessageEntity> getMessagesFromUser(UUID fromUserId, UUID toUserId) throws NotFoundException {
-        // Lista os usuários e grupos recentes com quem o usuário logado trocou
-        // mensagens
-        if (fromUserId.equals(toUserId)) {
-            throw new IllegalArgumentException("fromUserId and toUserId cannot be the same");
-        }
+    public List<MessageEntity> getMessagesFromUser(String fromUserId, String toUserId) {
+        // Substituímos a busca antiga pela nova busca completa da conversa
+        List<MessageEntity> messages = messageRepository.findConversation(fromUserId, toUserId, FromType.USER);
 
-        // Valida se os usuários existem dentro do service
-        userService.findById(fromUserId);
-        userService.findById(toUserId);
-
-        List<MessageEntity> messages = messageRepository.findBySenderAndReceiverAndType(fromUserId.toString(),
-                toUserId.toString(), FromType.USER);
-        messages.forEach(message -> System.out.printf(
-                "id=%s, sender=%s, receiver=%s, type=%s, content=%s%n",
-                message.getId(),
-                message.getSender(),
-                message.getReceiver(),
-                message.getType(),
-                message.getContent()));
         return messages;
-        // return List.of();
     }
 
     public List<MessageEntity> getRecentMessages(UUID userId) {
