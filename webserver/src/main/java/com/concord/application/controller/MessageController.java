@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.concord.application.domain.dto.UserDTO;
 import com.concord.application.domain.dto.message.MessageResponse;
 import com.concord.application.domain.dto.message.SendMessageDTO;
 import com.concord.application.domain.dto.message.SendMessageRequest;
@@ -44,16 +46,10 @@ public class MessageController {
         messageService.sendMessage(messageDTO);
     }
 
-    @GetMapping({"", "/recent"})
-    @ResponseStatus(HttpStatus.OK)
-    public List<MessageResponse> getRecentMessages(
-        @AuthenticationPrincipal UserEntity user
-    ) {
-        // Lista os usuários e grupos recentes com quem o usuário logado trocou mensagens
-        return messageService.getRecentMessages(user.getId())
-            .stream()
-            .map(MessageResponse::fromEntity)
-            .toList();
+    @GetMapping("/recent")
+    public ResponseEntity<List<UserDTO>> getRecentMessages(@AuthenticationPrincipal UserEntity user) {
+        List<UserDTO> recentChats = messageService.getRecentChats(user);
+        return ResponseEntity.ok(recentChats);
     }
 
     @GetMapping("/user/{userId}")

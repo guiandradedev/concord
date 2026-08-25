@@ -15,6 +15,9 @@ import com.concord.application.domain.model.UserEntity;
 
 @Repository
 public interface IMessageRepository extends JpaRepository<MessageEntity, UUID> {
+
+    List<MessageEntity> findBySenderOrReceiver(String sender, String receiver);
+
     List<MessageEntity> findBySenderAndReceiverAndType(
             String sender,
             String receiver,
