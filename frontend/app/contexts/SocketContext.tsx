@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext";
 
 type NewMessageResponse = {
+    id: string;
     sender: string;
     target: string;
     content: string;

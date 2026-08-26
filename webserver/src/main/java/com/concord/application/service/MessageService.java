@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.concord.application.database.repository.IMessageRepository;
 import com.concord.application.database.repository.IUserRepository;
@@ -18,7 +19,6 @@ import com.concord.application.domain.dto.message.SendMessageDTO;
 import com.concord.application.domain.model.MessageEntity;
 import com.concord.application.domain.model.UserEntity;
 import com.concord.application.domain.ports.out.MessagePublisher;
-import com.concord.application.exception.NotFoundException;
 import com.concord.application.exception.PublishException;
 
 import lombok.RequiredArgsConstructor;
@@ -55,6 +55,7 @@ public class MessageService {
                 .toList();
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void sendMessage(SendMessageDTO contentDTO) throws PublishException {
         // Valida os dados do DTO
         // - Usuário de origem existe
@@ -73,6 +74,10 @@ public class MessageService {
                 throw new IllegalArgumentException("Receiver not found");
             }
         }
+
+        // Salva a mensagem no banco
+        MessageEntity savedMessage = messageRepository.save(contentDTO.toEntity());
+        contentDTO.setId(savedMessage.getId());
 
         // Prepara os dados para publicação
         UUID transactionId = UUID.randomUUID();
@@ -94,9 +99,6 @@ public class MessageService {
                 Map.of(),
                 publishDto.getTimestamp(),
                 publishDto.getCorrelationId());
-
-        // Salva a mensagem no banco
-        messageRepository.save(contentDTO.toEntity());
 
         messagePublisher.publish(message);
     }

@@ -11,5 +11,8 @@ export default [
     layout("routes/_private/layout.tsx", [
         route('app', 'routes/_private/app.tsx'),
         route('profile', 'routes/_private/profile.tsx'),
+
+        // route('chat', 'routes/_private/app.tsx'), // Temporariamente renderiza /app
+        route('chat/:userId', 'routes/_private/chat.tsx'),
     ]),
 ] satisfies RouteConfig;

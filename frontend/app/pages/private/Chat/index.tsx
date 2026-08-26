@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useSocket } from "~/contexts/SocketContext";
 import api from "~/lib/axios";
 
 type ChatScreenProps = {
@@ -16,6 +17,7 @@ type MessageResponse = {
 
 export default function ChatScreen({ userId }: ChatScreenProps) {
     const [messages, setMessages] = useState<MessageResponse[]>([])
+    const { onMessage } = useSocket()
 
     async function getMessages() {
         const response = await api.get(`/messages/user/${userId}`)
@@ -25,12 +27,32 @@ export default function ChatScreen({ userId }: ChatScreenProps) {
 
     useEffect(() => {
         getMessages()
-    }, [])
+
+        const unsubscribe = onMessage((data) => {
+            // Verifica se a mensagem recebida pertence a este chat específico
+            if (data.sender === userId) {
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        id: data.id,
+                        sender: data.sender,
+                        receiver: data.target,
+                        type: data.type,
+                        content: data.content,
+                        createdAt: new Date().toISOString()
+                    }
+                ])
+            }
+        })
+        return unsubscribe
+    }, [userId, onMessage])
 
     async function handleSendMessage(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault()
-        const formData = new FormData(event.currentTarget)
+        const form = event.currentTarget
+        const formData = new FormData(form)
         const content = formData.get('content') as string
+        if (!content.trim()) return
 
         const data = {
             content,
@@ -38,8 +60,14 @@ export default function ChatScreen({ userId }: ChatScreenProps) {
             target: userId,
         }
 
-        await api.post('/messages', data)
-        await getMessages()
+        form.reset()
+
+        try {
+            await api.post('/messages', data)
+            await getMessages()
+        } catch (error) {
+            console.error("Erro ao enviar mensagem:", error)
+        }
     }
 
     return (

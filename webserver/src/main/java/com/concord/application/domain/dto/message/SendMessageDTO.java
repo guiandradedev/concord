@@ -19,6 +19,8 @@ import lombok.ToString;
 @Builder
 @ToString
 public class SendMessageDTO {
+    private UUID id;
+
     @NotNull(message="From is required")
     private String sender;
 
