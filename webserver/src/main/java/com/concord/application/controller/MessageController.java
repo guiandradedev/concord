@@ -35,16 +35,16 @@ public class MessageController {
 
     private final MessageService messageService;
 
-    @PostMapping({ "", "/" })
+    @PostMapping({"", "/"})
     @ResponseStatus(HttpStatus.CREATED)
     public void sendMessage(
-            HttpServletRequest request,
-            @Valid @RequestBody SendMessageRequest dto,
-            @AuthenticationPrincipal UserEntity user) throws PublishException {
-        SendMessageDTO messageDTO = SendMessageDTO.fromRequest(dto, user.getId());
-        messageService.sendMessage(messageDTO);
+         HttpServletRequest request, 
+         @Valid @RequestBody SendMessageDTO dto,
+         @AuthenticationPrincipal UserEntity user
+    ) throws PublishException {
+        
+        messageService.sendMessage(dto, user); 
     }
-
     @GetMapping("/recent")
     public ResponseEntity<List<UserDTO>> getRecentMessages(@AuthenticationPrincipal UserEntity user) {
         List<UserDTO> recentChats = messageService.getRecentChats(user);

@@ -7,6 +7,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,22 +33,16 @@ public class MessageService {
 
     private final MessagePublisher messagePublisher;
     private final IMessageRepository messageRepository;
-    private final UserService userService;
-    private final IUserRepository userRepository;
-
+    private final IUserRepository userRepository; 
     private final String privateMessageTopic = "my-topic";
 
-    public List<UserDTO> getRecentChats(UserEntity user) {
-        String userId = user.getId().toString();
+    public List<UserDTO> getRecentChats(UserEntity currentUser){
+        
+        List<MessageEntity> messages = messageRepository.findBySenderOrReceiver(currentUser.getId());
 
-        List<MessageEntity> messages = messageRepository.findBySenderOrReceiver(userId, userId);
-
-        Set<UUID> friendIds = messages.stream()
-                .map(msg -> msg.getSender().equals(userId) ? msg.getReceiver() : msg.getSender())
-                .map(UUID::fromString)
-                .collect(Collectors.toSet());
-
-        List<UserEntity> recentUsers = userRepository.findAllById(friendIds);
+        Set<UserEntity> recentUsers = messages.stream()
+                .map(msg -> msg.getSender().getId().equals(currentUser.getId()) ? msg.getReceiver() : msg.getSender())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         return recentUsers.stream()
                 .map(u -> UserDTO.builder()
@@ -55,35 +53,27 @@ public class MessageService {
                 .toList();
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    public void sendMessage(SendMessageDTO contentDTO) throws PublishException {
-        // Valida os dados do DTO
-        // - Usuário de origem existe
-        // - Se type == FromType.USER, valida se o destino existe
-        // - Se type == FromType.CHANNEL, valida se o canal existe e se o usuario tem
-        // permissao de falar nesse chat
+    @Transactional
+    public void sendMessage(SendMessageDTO contentDTO, UserEntity sender) throws PublishException {
+        
+        UserEntity receiver = userRepository.findById(UUID.fromString(contentDTO.getTarget()))
+                .orElseThrow(() -> new IllegalArgumentException("Destinatário não encontrado"));
 
-        if (contentDTO.getTarget().equals(contentDTO.getSender())) {
-            throw new IllegalArgumentException("Sender and receiver cannot be the same");
-        }
+        MessageEntity messageEntity = MessageEntity.builder()
+                .sender(sender)
+                .receiver(receiver)
+                .type(contentDTO.getType())
+                .content(contentDTO.getContent())
+                .build();
 
-        if (contentDTO.getType() == FromType.USER) {
-            try {
-                userService.findById(UUID.fromString(contentDTO.getTarget()));
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Receiver not found");
-            }
-        }
-
-        MessageEntity savedMessage = messageRepository.saveAndFlush(contentDTO.toEntity());
+        MessageEntity savedMessage = messageRepository.saveAndFlush(messageEntity);
 
         UUID transactionId = UUID.randomUUID();
-
         MessagePublisher.Message<MessageEntity> message = new MessagePublisher.Message<>(
                 transactionId,
                 this.privateMessageTopic,
                 contentDTO.getTarget(),
-                savedMessage,
+                savedMessage, 
                 Map.of(),
                 Instant.now(),
                 null);
@@ -92,9 +82,10 @@ public class MessageService {
     }
 
     public List<MessageEntity> getMessagesFromUser(String fromUserId, String toUserId) {
-        List<MessageEntity> messages = messageRepository.findConversation(fromUserId, toUserId, FromType.USER);
-
-        return messages;
+        return messageRepository.findConversation(
+                UUID.fromString(fromUserId), 
+                UUID.fromString(toUserId), 
+                FromType.USER);
     }
 
     public List<MessageEntity> getRecentMessages(UUID userId) {
