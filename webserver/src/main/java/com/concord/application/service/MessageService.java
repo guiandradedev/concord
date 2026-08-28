@@ -75,36 +75,23 @@ public class MessageService {
             }
         }
 
-        // Salva a mensagem no banco
-        MessageEntity savedMessage = messageRepository.save(contentDTO.toEntity());
-        contentDTO.setId(savedMessage.getId());
+        MessageEntity savedMessage = messageRepository.saveAndFlush(contentDTO.toEntity());
 
-        // Prepara os dados para publicação
         UUID transactionId = UUID.randomUUID();
 
-        PublishMessageDTO<SendMessageDTO> publishDto = new PublishMessageDTO<>();
-        publishDto.setPayload(contentDTO);
-        publishDto.setDestination("");
-        publishDto.setHeaders(null);
-        publishDto.setId(transactionId);
-        publishDto.setTimestamp(Instant.now());
-        publishDto.setCorrelationId(null);
-
-        // Cria a mensagem para publicação
-        MessagePublisher.Message<SendMessageDTO> message = new MessagePublisher.Message<>(
-                publishDto.getId(),
+        MessagePublisher.Message<MessageEntity> message = new MessagePublisher.Message<>(
+                transactionId,
                 this.privateMessageTopic,
                 contentDTO.getTarget(),
-                contentDTO,
+                savedMessage,
                 Map.of(),
-                publishDto.getTimestamp(),
-                publishDto.getCorrelationId());
+                Instant.now(),
+                null);
 
         messagePublisher.publish(message);
     }
 
     public List<MessageEntity> getMessagesFromUser(String fromUserId, String toUserId) {
-        // Substituímos a busca antiga pela nova busca completa da conversa
         List<MessageEntity> messages = messageRepository.findConversation(fromUserId, toUserId, FromType.USER);
 
         return messages;

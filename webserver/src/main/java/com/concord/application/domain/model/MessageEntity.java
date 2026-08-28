@@ -4,6 +4,9 @@ import java.util.UUID;
 
 import com.concord.application.domain.dto.message.FromType;
 
+import java.time.Instant;
+import org.hibernate.annotations.CreationTimestamp;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -42,4 +45,8 @@ public class MessageEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private FromType type;
+
+    @CreationTimestamp()
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
 }
