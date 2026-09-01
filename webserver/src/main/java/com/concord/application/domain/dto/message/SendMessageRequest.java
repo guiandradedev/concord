@@ -27,11 +27,4 @@ public class SendMessageRequest {
     @NotBlank(message="Content is required")
     private String content;
 
-    public MessageEntity toEntity() {
-        return MessageEntity.builder()
-                .receiver(this.target)
-                .type(this.type)
-                .content(this.content)
-                .build();
-    }
 }

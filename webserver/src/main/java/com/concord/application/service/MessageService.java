@@ -7,8 +7,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashSet;
 
 import org.springframework.stereotype.Service;
@@ -16,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.concord.application.database.repository.IMessageRepository;
 import com.concord.application.database.repository.IUserRepository;
-import com.concord.application.domain.dto.PublishMessageDTO;
 import com.concord.application.domain.dto.UserDTO;
 import com.concord.application.domain.dto.message.FromType;
 import com.concord.application.domain.dto.message.SendMessageDTO;

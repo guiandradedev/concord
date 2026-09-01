@@ -45,6 +45,7 @@ public class MessageController {
         
         messageService.sendMessage(dto, user); 
     }
+    
     @GetMapping("/recent")
     public ResponseEntity<List<UserDTO>> getRecentMessages(@AuthenticationPrincipal UserEntity user) {
         List<UserDTO> recentChats = messageService.getRecentChats(user);

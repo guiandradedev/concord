@@ -33,15 +33,6 @@ public class SendMessageDTO {
     @NotBlank(message="Content is required")
     private String content;
 
-    public MessageEntity toEntity() {
-        return MessageEntity.builder()
-                .sender(this.sender)
-                .receiver(this.target)
-                .type(this.type)
-                .content(this.content)
-                .build();
-    }
-
     public static SendMessageDTO fromRequest(SendMessageRequest request, UUID sender) {
         return SendMessageDTO.builder()
                 .sender(sender.toString())
