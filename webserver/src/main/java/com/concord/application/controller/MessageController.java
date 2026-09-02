@@ -39,7 +39,7 @@ public class MessageController {
     @ResponseStatus(HttpStatus.CREATED)
     public void sendMessage(
          HttpServletRequest request, 
-         @Valid @RequestBody SendMessageDTO dto,
+         @Valid @RequestBody SendMessageRequest dto,
          @AuthenticationPrincipal UserEntity user
     ) throws PublishException {
         

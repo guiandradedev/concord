@@ -20,4 +20,14 @@ public class MessageResponse {
     private FromType type;
     private String content;
 
+    public static MessageResponse fromEntity(MessageEntity entity) {
+        return MessageResponse.builder()
+                .id(entity.getId().toString())
+                .sender(entity.getSender().getId().toString()) // Id remetente
+                .receiver(entity.getReceiver().getId().toString()) // Id destinatario
+                .type(entity.getType())
+                .content(entity.getContent())
+                .build();
+    }
+
 }

@@ -16,7 +16,9 @@ import com.concord.application.database.repository.IMessageRepository;
 import com.concord.application.database.repository.IUserRepository;
 import com.concord.application.domain.dto.UserDTO;
 import com.concord.application.domain.dto.message.FromType;
+import com.concord.application.domain.dto.message.MessageResponse;
 import com.concord.application.domain.dto.message.SendMessageDTO;
+import com.concord.application.domain.dto.message.SendMessageRequest;
 import com.concord.application.domain.model.MessageEntity;
 import com.concord.application.domain.model.UserEntity;
 import com.concord.application.domain.ports.out.MessagePublisher;
@@ -51,26 +53,28 @@ public class MessageService {
     }
 
     @Transactional
-    public void sendMessage(SendMessageDTO contentDTO, UserEntity sender) throws PublishException {
+    public void sendMessage(SendMessageRequest request, UserEntity sender) throws PublishException {
         
-        UserEntity receiver = userRepository.findById(UUID.fromString(contentDTO.getTarget()))
+        UserEntity receiver = userRepository.findById(UUID.fromString(request.getTarget()))
                 .orElseThrow(() -> new IllegalArgumentException("Destinatário não encontrado"));
 
         MessageEntity messageEntity = MessageEntity.builder()
                 .sender(sender)
                 .receiver(receiver)
-                .type(contentDTO.getType())
-                .content(contentDTO.getContent())
+                .type(request.getType())
+                .content(request.getContent())
                 .build();
 
         MessageEntity savedMessage = messageRepository.saveAndFlush(messageEntity);
-
         UUID transactionId = UUID.randomUUID();
-        MessagePublisher.Message<MessageEntity> message = new MessagePublisher.Message<>(
+
+        MessageResponse payloadDTO = MessageResponse.fromEntity(savedMessage);
+
+        MessagePublisher.Message<MessageResponse> message = new MessagePublisher.Message<>(
                 transactionId,
                 this.privateMessageTopic,
-                contentDTO.getTarget(),
-                savedMessage, 
+                request.getTarget(),
+                payloadDTO, // <-- Envia o DTO
                 Map.of(),
                 Instant.now(),
                 null);
