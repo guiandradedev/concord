@@ -1,7 +1,15 @@
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
+import express from "express";
 
 console.log("Starting WebSocket server...");
+
+const app = express();
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
 
 const httpServer = createServer();
 const port = Number(process.env.PORT ?? 3000);
