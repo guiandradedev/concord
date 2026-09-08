@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "~/contexts/AuthContext";
 
+const REALTIME_GATEWAY_URL = import.meta.env.VITE_REALTIME_GATEWAY_URL ?? "ws://localhost:3000";
+
 export default function App() {
     const { user } = useAuth();
     const [messages, setMessages] = useState<any[]>([]);
@@ -11,7 +13,7 @@ export default function App() {
     useEffect(() => {
         if (!user) return;
 
-        const socket: Socket = io("ws://localhost:3000", {
+        const socket: Socket = io(REALTIME_GATEWAY_URL, {
             auth: {
                 userId: user.name 
             }
