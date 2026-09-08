@@ -1,6 +1,4 @@
 package com.concord.application.domain.dto.message;
-import java.util.UUID;
-
 import com.concord.application.domain.model.MessageEntity;
 
 import jakarta.validation.constraints.NotBlank;
@@ -18,13 +16,9 @@ import lombok.ToString;
 @Setter
 @Builder
 @ToString
-public class SendMessageDTO {
-    private UUID id;
+public class SendMessageRequest {
 
-    @NotNull(message="From is required")
-    private String sender;
-
-    @NotNull(message="Target is required")
+    @NotBlank(message="Target is required")
     private String target;
 
     @NotNull(message="Type is required")
@@ -33,12 +27,4 @@ public class SendMessageDTO {
     @NotBlank(message="Content is required")
     private String content;
 
-    public static SendMessageDTO fromRequest(SendMessageRequest request, UUID sender) {
-        return SendMessageDTO.builder()
-                .sender(sender.toString())
-                .target(request.getTarget())
-                .type(request.getType())
-                .content(request.getContent())
-                .build();
-    }
 }

@@ -1,0 +1,14 @@
+# Dockerfile utilizado para inicializar o kafka.
+
+FROM apache/kafka:3.7.0
+
+# Define o usuário como root para permitir a cópia do script e permissões 
+USER root
+
+COPY init-topics.sh /concord-kafka-init.sh
+RUN chmod +x /concord-kafka-init.sh
+
+# Reduz o permissionamento do script para usuário não privilegiado
+USER appuser
+
+CMD ["/concord-kafka-init.sh"]

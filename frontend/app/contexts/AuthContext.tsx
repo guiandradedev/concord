@@ -4,8 +4,11 @@ import api from "~/lib/axios";
 import { clearAccessToken, getAccessToken, setAccessToken } from "~/lib/auth-token";
 
 type User = {
-    name: string
+    id: string;
+    name: string;
+    email: string;
 }
+
 type AuthContextProps = {
     isAuthenticated: boolean,
     user: User | null,
@@ -26,15 +29,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+    const fetchUser: () => Promise<User> = async () => {
+        const response = await api.get<User>("/users/me");
+        return response.data;
+    }
+
+
     useEffect(() => {
         let active = true;
 
         async function restoreSession() {
             const token = getAccessToken();
             if (token) {
-                if (!active) return;
-                setIsAuthenticated(true);
-                setLoading(false);
+                try {
+                    setUser(await fetchUser());
+                    if (!active) return;
+                    setIsAuthenticated(true);
+                } catch{
+                    clearAccessToken();
+                    setIsAuthenticated(false);
+                    setUser(null);
+                } finally {
+                    if (active) setLoading(false);
+                }
                 return;
             }
 
@@ -44,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                 if (nextAccessToken) {
                     setAccessToken(nextAccessToken);
+                    setUser(await fetchUser());
                     if (!active) return;
                     setIsAuthenticated(true);
                 }
@@ -66,6 +84,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
     }, []);
 
+    useEffect(() => {
+        async function getUser() {
+            if (isAuthenticated && user == null) {
+                // requisicao para o back
+                setUser(await fetchUser());
+            }
+        }
+    }, [isAuthenticated, user])
+
     const login = useCallback(async (email: string, password: string): Promise<void> => {
         try {
             const response = await api.post<UserAuthenticateResponse>("/auth/login", {
@@ -79,8 +106,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
 
             setAccessToken(accessToken);
+            setUser(await fetchUser());
             setIsAuthenticated(true);
-            setUser({ name: email });
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 throw error;

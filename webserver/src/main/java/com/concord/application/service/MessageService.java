@@ -3,15 +3,24 @@ package com.concord.application.service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
+import java.util.LinkedHashSet;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.concord.application.database.repository.IMessageRepository;
-import com.concord.application.domain.dto.PublishMessageDTO;
+import com.concord.application.database.repository.IUserRepository;
+import com.concord.application.domain.dto.UserDTO;
 import com.concord.application.domain.dto.message.FromType;
+import com.concord.application.domain.dto.message.MessageResponse;
 import com.concord.application.domain.dto.message.SendMessageDTO;
+import com.concord.application.domain.dto.message.SendMessageRequest;
 import com.concord.application.domain.model.MessageEntity;
+import com.concord.application.domain.model.UserEntity;
 import com.concord.application.domain.ports.out.MessagePublisher;
 import com.concord.application.exception.PublishException;
 
@@ -23,55 +32,72 @@ public class MessageService {
 
     private final MessagePublisher messagePublisher;
     private final IMessageRepository messageRepository;
-
+    private final IUserRepository userRepository; 
     private final String privateMessageTopic = "my-topic";
 
-    public void sendMessage(SendMessageDTO contentDTO) throws PublishException{
-        // Valida os dados do DTO
-        // - Usuário de origem existe
-        // - Se type == FromType.USER, valida se o destino existe
-        // - Se type == FromType.CHANNEL, valida se o canal existe e se o usuario tem permissao de falar nesse chat
+    public List<UserDTO> getRecentChats(UserEntity currentUser){
+        
+        List<MessageEntity> messages = messageRepository.findBySenderOrReceiver(currentUser.getId());
 
-        // Prepara os dados para publicação
+        Set<UserEntity> recentUsers = messages.stream()
+                .map(msg -> msg.getSender().getId().equals(currentUser.getId()) ? msg.getReceiver() : msg.getSender())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        return recentUsers.stream()
+                .map(u -> UserDTO.builder()
+                        .id(u.getId())
+                        .name(u.getName())
+                        .email(u.getEmail())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
+    public void sendMessage(SendMessageRequest request, UserEntity sender) throws PublishException {
+        
+        UserEntity receiver = userRepository.findById(UUID.fromString(request.getTarget()))
+                .orElseThrow(() -> new IllegalArgumentException("Destinatário não encontrado"));
+
+        MessageEntity messageEntity = MessageEntity.builder()
+                .sender(sender)
+                .receiver(receiver)
+                .type(request.getType())
+                .content(request.getContent())
+                .build();
+
+        MessageEntity savedMessage = messageRepository.saveAndFlush(messageEntity);
         UUID transactionId = UUID.randomUUID();
 
-        PublishMessageDTO<SendMessageDTO> publishDto = new PublishMessageDTO<>();
-        publishDto.setPayload(contentDTO);
-        publishDto.setDestination("");
-        publishDto.setHeaders(null);
-        publishDto.setId(transactionId);
-        publishDto.setTimestamp(Instant.now());
-        publishDto.setCorrelationId(null);
+        MessageResponse payloadDTO = MessageResponse.fromEntity(savedMessage);
 
-        // Cria a mensagem para publicação
-        MessagePublisher.Message<SendMessageDTO> message = new MessagePublisher.Message<>(
-                publishDto.getId(),
+        MessagePublisher.Message<MessageResponse> message = new MessagePublisher.Message<>(
+                transactionId,
                 this.privateMessageTopic,
-                contentDTO.getTarget(),
-                contentDTO,
+                request.getTarget(),
+                payloadDTO, // <-- Envia o DTO
                 Map.of(),
-                publishDto.getTimestamp(),
-                publishDto.getCorrelationId());
+                Instant.now(),
+                null);
 
-        // Salva a mensagem no banco
-        System.out.println("Salvando mensagem no banco: " + contentDTO.toEntity());
-        messageRepository.save(contentDTO.toEntity());
-        
         messagePublisher.publish(message);
     }
 
     public List<MessageEntity> getMessagesFromUser(String fromUserId, String toUserId) {
-        // Lista os usuários e grupos recentes com quem o usuário logado trocou mensagens
-        System.out.println("Teste");
-        List<MessageEntity> messages = messageRepository.findBySenderAndReceiverAndType(fromUserId, toUserId, FromType.USER);
-        System.out.println("Mensagens encontradas: " + messages.size());
-        messages.forEach(message -> System.out.printf(
-            "id=%s, sender=%s, receiver=%s, type=%s, content=%s%n",
-            message.getId(),
-            message.getSender(),
-            message.getReceiver(),
-            message.getType(),
-            message.getContent()));
-        return messages;
+        return messageRepository.findConversation(
+                UUID.fromString(fromUserId), 
+                UUID.fromString(toUserId), 
+                FromType.USER);
+    }
+
+    public List<MessageEntity> getRecentMessages(UUID userId) {
+        // TODO: implement this
+        // return messageRepository.findRecentMessages(userId);
+        return List.of();
+    }
+
+    public List<MessageEntity> getMessagesFromChannel(String channelId) {
+        // TODO: implement this
+        // return messageRepository.findByChannelId(channelId);
+        return List.of();
     }
 }
