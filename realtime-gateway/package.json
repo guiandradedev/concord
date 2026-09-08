@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
     "dev": "tsx watch --env-file .env src/index.ts",
     "dev2": "tsx watch --env-file .env src/teste.ts",
     "consumer": "node consumer.js"

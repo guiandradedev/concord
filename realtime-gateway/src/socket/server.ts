@@ -4,6 +4,8 @@ import { Server, Socket } from "socket.io";
 console.log("Starting WebSocket server...");
 
 const httpServer = createServer();
+const port = Number(process.env.PORT ?? 3000);
+
 export const io = new Server(httpServer, {
   cors: { origin: "*" }
 });
@@ -49,6 +51,6 @@ io.on("connection", (socket: Socket) => {
 });
 
 
-httpServer.listen(3000, () =>
-  console.log("WebSocket server listening on port 3000")
+httpServer.listen(port, () =>
+  console.log(`WebSocket server listening on port ${port}`)
 );
