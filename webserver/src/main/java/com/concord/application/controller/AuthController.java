@@ -105,6 +105,8 @@ public class AuthController {
 
         userRepository.save(newUser);
 
+        System.out.println(newUser.getId());
+
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
