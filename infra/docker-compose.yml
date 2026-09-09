@@ -64,8 +64,6 @@ services:
       dockerfile: Dockerfile
     container_name: ${WEBSERVER_CONTAINER}
     restart: always
-    ports:
-      - "${WEBSERVER_PORT}:8082"
     environment:
       SERVER_PORT: 8082
       DATABASE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?createDatabaseIfNotExist=true
@@ -117,8 +115,6 @@ services:
       dockerfile: Dockerfile
     container_name: ${FRONTEND_CONTAINER}
     restart: always
-    ports:
-      - "${FRONTEND_PORT}:3000"
     depends_on:
       - webserver
       - realtime-gateway
