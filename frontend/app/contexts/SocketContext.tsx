@@ -17,9 +17,10 @@ const REALTIME_GATEWAY_URL =
 type NewMessageResponse = {
     id: string;
     sender: string;
-    target: string;
+    receiver: string;
     content: string;
     type: string;
+    createdAt: string;
 };
 
 type SocketContextProps = {

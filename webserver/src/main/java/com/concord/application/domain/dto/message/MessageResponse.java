@@ -19,6 +19,7 @@ public class MessageResponse {
     private String receiver;
     private FromType type;
     private String content;
+    private String createdAt;
 
     public static MessageResponse fromEntity(MessageEntity entity) {
         return MessageResponse.builder()
@@ -27,6 +28,7 @@ public class MessageResponse {
                 .receiver(entity.getReceiver().getId().toString()) // Id destinatario
                 .type(entity.getType())
                 .content(entity.getContent())
+                .createdAt(entity.getCreatedAt().toString())
                 .build();
     }
 

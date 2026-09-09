@@ -15,7 +15,7 @@ export default function PrivateLayoutPage({ children }: { children: React.ReactN
     }
 
     return (
-        <main className="min-h-screen flex flex-col items-center justify-center">
+        <main className="flex min-h-dvh flex-col">
             <div className="w-full bg-gray-100 shadow-md p-4 flex justify-between items-center">
                 <h1 className="text-xl font-bold">Meu App</h1>
 
@@ -25,7 +25,7 @@ export default function PrivateLayoutPage({ children }: { children: React.ReactN
                 </nav>
             </div>
 
-            <div className="flex-1 p-4">
+            <div className="flex w-full flex-1 justify-center p-4 sm:p-6">
                 {children}
             </div>
         </main>
