@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.concord.application.database.repository.IUserRepository;
 import com.concord.application.domain.dto.UserSearchResultDTO;
 import com.concord.application.domain.model.UserEntity;
+import com.concord.application.exception.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -67,5 +68,21 @@ class UserServiceTest {
                         org.mockito.ArgumentMatchers.anyString(),
                         org.mockito.ArgumentMatchers.any(UUID.class)
                 );
+    }
+
+    @Test
+    void shouldReturnOnlyPublicUserData() throws NotFoundException {
+        UUID userId = UUID.randomUUID();
+        UserEntity user = UserEntity.builder()
+                .id(userId)
+                .name("Maria")
+                .email("maria@example.com")
+                .password("secret")
+                .build();
+
+        when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+
+        assertThat(userService.getPublicUser(userId))
+                .isEqualTo(new UserSearchResultDTO(userId, "Maria"));
     }
 }

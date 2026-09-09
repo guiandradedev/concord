@@ -43,4 +43,9 @@ public class UserService {
                 .map(user -> new UserSearchResultDTO(user.getId(), user.getName()))
                 .toList();
     }
+
+    public UserSearchResultDTO getPublicUser(UUID id) throws NotFoundException {
+        UserEntity user = findById(id);
+        return new UserSearchResultDTO(user.getId(), user.getName());
+    }
 }
