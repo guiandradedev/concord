@@ -21,6 +21,41 @@ Vagrant.configure("2") do |config|
     is_arm = RUBY_PLATFORM.include?("arm64") || RUBY_PLATFORM.include?("aarch64")
     BOX = is_arm ? "bento/ubuntu-22.04" : "ubuntu/focal64"
 
+
+    env_vars = {
+        "REPO_URL"   => ENV["REPO_URL"] || "https://github.com/guiandradedev/concord.git",
+        "BRANCH_NAME"=> ENV["BRANCH_NAME"] || "development",
+        "DB_USER"    => ENV["DB_USER"] || "root",
+        "DB_PASS"    => ENV["DB_PASS"] || "example",
+        "JWT_SECRET" => ENV["JWT_SECRET"] || "chave_muito_segura",
+        "ALLOWED_ORIGIN_URL" => ENV["ALLOWED_ORIGIN_URL"] || "http://localhost:8069",
+    }
+
+    # Define o proxy como gateway padrão das VMs internas e mantém a rota após reboot.
+    client_gateway_setup = <<~'SHELL'
+        cat > /etc/systemd/system/concord-default-route.service <<'EOF'
+        [Unit]
+        Description=Use the Concord proxy as the default gateway
+        Wants=network-online.target
+        After=network-online.target
+
+        [Service]
+        Type=oneshot
+        ExecStart=/bin/sh -c 'ip route del default via 10.0.2.2 2>/dev/null || true; ip route replace default via 10.20.30.1'
+        RemainAfterExit=yes
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+
+        # O proxy também funciona como ponto de entrada para as consultas DNS.
+        rm -f /etc/resolv.conf
+        printf 'nameserver 10.20.30.1\n' > /etc/resolv.conf
+
+        systemctl daemon-reload
+        systemctl enable --now concord-default-route.service
+    SHELL
+
 =begin ESTRUTURA GERAL PARA CONFIGURAÇÃO DE CADA VM
         CONFIGS GERAIS:
         Box do Ubuntu 22.04 LTS para Mac ou Ubuntu 20.04 LTS para demais (compatibilidade).
@@ -43,16 +78,16 @@ Vagrant.configure("2") do |config|
         Configurações específicas.
 =end
 
-    # VM 1: Proxy Reverso + WEB Estático
+    # VM 3: Proxy Reverso + WEB Estático
     config.vm.define "proxy" do |proxy|
         # configs gerais
         proxy.vm.box = BOX
         proxy.vm.hostname = "proxy"
 
         # interfaces de rede
-        proxy.vm.network "forwarded_port", guest: 22, host: "2230"
+        # proxy.vm.network "forwarded_port", guest: 22, host: "2230"
         proxy.vm.network "private_network", ip: "10.20.30.1", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
-        proxy.vm.network "forwarded_port", guest: 80, host: "8069"
+        proxy.vm.network "forwarded_port", guest: 80, host: "8069", auto_correct: true
 
         # configs vbox
         proxy.vm.provider "virtualbox" do |vb|
@@ -63,54 +98,112 @@ Vagrant.configure("2") do |config|
         end
 
         # shell script
-        proxy.vm.provision "shell", inline: <<-SHELL
+        proxy.vm.provision "shell", env: env_vars, inline: <<~SHELL
             sudo apt-get -y update
 
-            apt-get install -y git
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get install -y git curl nginx iptables-persistent
+
+cat > /etc/sysctl.d/99-concord-gateway.conf <<'EOF'
+net.ipv4.ip_forward=1
+EOF
+
+            sysctl -p /etc/sysctl.d/99-concord-gateway.conf
+
+            WAN_IF=$(ip route show default | awk '{print $5; exit}')
+
+            # Encaminha o DNS recebido em 10.20.30.1 para o DNS do NAT do VirtualBox.
+            iptables -t nat -C PREROUTING -d 10.20.30.1 -p udp --dport 53 -j DNAT --to-destination 10.0.2.3 2>/dev/null || \
+                iptables -t nat -A PREROUTING -d 10.20.30.1 -p udp --dport 53 -j DNAT --to-destination 10.0.2.3
+            iptables -t nat -C PREROUTING -d 10.20.30.1 -p tcp --dport 53 -j DNAT --to-destination 10.0.2.3 2>/dev/null || \
+                iptables -t nat -A PREROUTING -d 10.20.30.1 -p tcp --dport 53 -j DNAT --to-destination 10.0.2.3
+
+            iptables -t nat -C POSTROUTING -s 10.20.30.0/28 -o "$WAN_IF" -j MASQUERADE 2>/dev/null || \
+                iptables -t nat -A POSTROUTING -s 10.20.30.0/28 -o "$WAN_IF" -j MASQUERADE
+            iptables -C FORWARD -s 10.20.30.0/28 -o "$WAN_IF" -j ACCEPT 2>/dev/null || \
+                iptables -I FORWARD 1 -s 10.20.30.0/28 -o "$WAN_IF" -j ACCEPT
+            iptables -C FORWARD -d 10.20.30.0/28 -i "$WAN_IF" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || \
+                iptables -I FORWARD 1 -d 10.20.30.0/28 -i "$WAN_IF" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+            netfilter-persistent save
+
+            curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+            
+            apt-get install -y nodejs
             
             mkdir -p /home/application
             cd /home/application
             if [ ! -d /home/application/concord ]; then
-                git clone https://github.com/guiandradedev/concord.git
+                git clone -b ${BRANCH_NAME} ${REPO_URL} concord
             fi
             # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
-        SHELL
-    end
 
-    # VM 2: API
-    config.vm.define "api" do |api|
-        # configs gerais
-        api.vm.box = BOX
-        api.vm.hostname = "api"
+            cd /home/application/concord/frontend
 
-        # interfaces de rede
-        api.vm.network "forwarded_port", guest:22, host: "2231"
-        api.vm.network "private_network", ip: "10.20.30.2", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+cat <<'EOF' > .env.production
+VITE_BACKEND_URL=/api
+VITE_REALTIME_GATEWAY_URL=http://localhost:8069
+EOF
 
-        # configs vbox
-        api.vm.provider "virtualbox" do |vb|
-            vb.gui = !is_arm
-            vb.memory = "1024"
-            vb.cpus = 1
-            vb.name = "api"
-        end
+            npm ci
+            npm run build
 
-        # shell script
-        api.vm.provision "shell", inline: <<-SHELL
-            sudo apt-get -y update
 
-            apt-get install -y git
+cat <<'EOT' > /etc/systemd/system/concord-frontend.service
+[Unit]
+Description=Concord Frontend
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/application/concord/frontend
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm run start
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOT
+
+cat > /etc/nginx/sites-available/concord <<'EOF'
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /api/ {
+        proxy_pass http://10.20.30.2:8082/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /socket.io/ {
+        proxy_pass http://10.20.30.5:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+EOF
+
+            ln -sf /etc/nginx/sites-available/concord /etc/nginx/sites-enabled/concord
+            rm -f /etc/nginx/sites-enabled/default
+
+            systemctl daemon-reload
+            systemctl enable --now concord-frontend
+        
+            systemctl restart nginx
             
-            mkdir -p /home/application
-            cd /home/application
-            if [ ! -d /home/application/concord ]; then
-                git clone https://github.com/guiandradedev/concord.git
-            fi
-            # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
         SHELL
     end
 
-    # VM 3: Banco Relacional
+    # VM 1: Banco Relacional
     config.vm.define "db" do |db|
         # configs gerais
         db.vm.box = BOX
@@ -129,85 +222,162 @@ Vagrant.configure("2") do |config|
         end
 
         # shell script
-        db.vm.provision "shell", inline: <<-SHELL
-            sudo apt-get -y update
+        db.vm.provision "shell", env: env_vars, inline: client_gateway_setup + <<~SHELL
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -y
+            apt-get install -y mysql-server
 
-            apt-get install -y git
-            
-            mkdir -p /home/application
-            cd /home/application
-            if [ ! -d /home/application/concord ]; then
-                git clone https://github.com/guiandradedev/concord.git
-            fi
-            # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
+            sed -i 's/bind-address.*/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
+            systemctl restart mysql
+
+            mysql -e "CREATE DATABASE IF NOT EXISTS mydb;"
+            mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'10.20.30.%' IDENTIFIED BY '${DB_PASS}';"
+            mysql -e "GRANT ALL PRIVILEGES ON mydb.* TO '${DB_USER}'@'10.20.30.%';"
+            mysql -e "FLUSH PRIVILEGES;"
         SHELL
     end
 
-    # VM 4: Broker de Mensagens
-    config.vm.define "broker" do |broker|
+    # VM 2: API
+    config.vm.define "api" do |api|
         # configs gerais
-        broker.vm.box = BOX
-        broker.vm.hostname = "broker"
+        api.vm.box = BOX
+        api.vm.hostname = "api"
 
         # interfaces de rede
-        broker.vm.network "forwarded_port", guest:22, host: "2232"
-        broker.vm.network "private_network", ip: "10.20.30.4", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+        # api.vm.network "forwarded_port", guest:22, host: "2231"
+        api.vm.network "private_network", ip: "10.20.30.2", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
 
         # configs vbox
-        broker.vm.provider "virtualbox" do |vb|
+        api.vm.provider "virtualbox" do |vb|
             vb.gui = !is_arm
-            vb.memory = "1024"
+            vb.memory = "2048"
             vb.cpus = 1
-            vb.name = "broker"
+            vb.name = "api"
         end
 
         # shell script
-        broker.vm.provision "shell", inline: <<-SHELL
-            sudo apt-get -y update
+        api.vm.provision "shell", env: env_vars, inline: client_gateway_setup + <<~SHELL
+            apt-get update -y
+            apt-get install -y openjdk-21-jdk git
 
-            apt-get install -y git
             
+
             mkdir -p /home/application
             cd /home/application
-            if [ ! -d /home/application/concord ]; then
-                git clone https://github.com/guiandradedev/concord.git
-            fi
-            # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
+            rm -rf concord
+            git clone -b ${BRANCH_NAME} ${REPO_URL} concord
+
+            # Navega para a pasta webserver
+            cd concord/webserver || { echo "Erro: Pasta concord/webserver não encontrada!"; exit 1; }
+            chmod +x mvnw
+            ./mvnw clean package -DskipTests
+
+            cat <<EOT > /etc/systemd/system/concord-backend.service
+            [Unit]
+            Description=Concord Spring Boot API
+            After=network.target
+
+            [Service]
+            User=root
+            WorkingDirectory=/home/application/concord/webserver
+            Environment="SERVER_PORT=8082"
+            Environment="DATABASE_URL=jdbc:mysql://10.20.30.3:3306/mydb?createDatabaseIfNotExist=true"
+            Environment="DATABASE_USERNAME=${DB_USER}"
+            Environment="DATABASE_PASSWORD=${DB_PASS}"
+            Environment="ALLOWED_ORIGIN_URL=${ALLOWED_ORIGIN_URL}"
+            Environment="KAFKA_BROKERS=10.20.30.4:9092"
+            Environment="JWT_SECRET=${JWT_SECRET}"
+            ExecStart=/usr/bin/java -jar /home/application/concord/webserver/target/demo-0.0.1-SNAPSHOT.jar
+            SuccessExitStatus=143
+            Restart=always
+            RestartSec=10
+
+            [Install]
+            WantedBy=multi-user.target
+            EOT
+
+            systemctl daemon-reload
+            systemctl enable --now concord-backend
         SHELL
     end
 
-    # VM 5: Gateway Realtime
-    config.vm.define "gateway" do |gateway|
-        # configs gerais
-        gateway.vm.box = BOX
-        gateway.vm.hostname = "gateway"
+    # # VM 4: Broker de Mensagens
+    # config.vm.define "broker" do |broker|
+    #     # configs gerais
+    #     broker.vm.box = BOX
+    #     broker.vm.hostname = "broker"
 
-        # interfaces de rede
-        gateway.vm.network "forwarded_port", guest:22, host: "2233"
-        gateway.vm.network "private_network", ip: "10.20.30.5", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+    #     # interfaces de rede
+    #     broker.vm.network "forwarded_port", guest:22, host: "2232"
+    #     broker.vm.network "private_network", ip: "10.20.30.4", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
 
-        # configs vbox
-        gateway.vm.provider "virtualbox" do |vb|
-            vb.gui = !is_arm
-            vb.memory = "1024"
-            vb.cpus = 1
-            vb.name = "gateway"
-        end
+    #     # configs vbox
+    #     broker.vm.provider "virtualbox" do |vb|
+    #         vb.gui = !is_arm
+    #         vb.memory = "1024"
+    #         vb.cpus = 1
+    #         vb.name = "broker"
+    #     end
 
-        # shell script
-        gateway.vm.provision "shell", inline: <<-SHELL
-            sudo apt-get -y update
+    #     # shell script
+    #     broker.vm.provision "shell", inline: <<~SHELL
+    #         sudo apt-get -y update
 
-            apt-get install -y git
+    #         apt-get install -y git
             
-            mkdir -p /home/application
-            cd /home/application
-            if [ ! -d /home/application/concord ]; then
-                git clone https://github.com/guiandradedev/concord.git
-            fi
-            # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
-        SHELL
-    end
+    #         mkdir -p /home/application
+    #         cd /home/application
+    #         if [ ! -d /home/application/concord ]; then
+    #             git clone https://github.com/guiandradedev/concord.git
+    #         fi
+
+    #         apt-get install -y openjdk-21-jdk git
+
+    #         curl -O https://dlcdn.apache.org/kafka/4.3.1/kafka_2.13-4.3.1.tgz
+    #         tar -xzf kafka_2.13-4.3.1.tgz
+    #         cd kafka_2.13-4.3.1
+
+    #         KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
+    #         bin/kafka-storage.sh format --standalone -t $KAFKA_CLUSTER_ID -c config/server.properties
+    #         bin/kafka-server-start.sh config/server.properties
+
+
+    #         # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
+    #     SHELL
+    # end
+
+    # # VM 5: Gateway Realtime
+    # config.vm.define "gateway" do |gateway|
+    #     # configs gerais
+    #     gateway.vm.box = BOX
+    #     gateway.vm.hostname = "gateway"
+
+    #     # interfaces de rede
+    #     gateway.vm.network "forwarded_port", guest:22, host: "2233"
+    #     gateway.vm.network "private_network", ip: "10.20.30.5", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+
+    #     # configs vbox
+    #     gateway.vm.provider "virtualbox" do |vb|
+    #         vb.gui = !is_arm
+    #         vb.memory = "1024"
+    #         vb.cpus = 1
+    #         vb.name = "gateway"
+    #     end
+
+    #     # shell script
+    #     gateway.vm.provision "shell", inline: <<~SHELL
+    #         sudo apt-get -y update
+
+    #         apt-get install -y git
+            
+    #         mkdir -p /home/application
+    #         cd /home/application
+    #         if [ ! -d /home/application/concord ]; then
+    #             git clone https://github.com/guiandradedev/concord.git
+    #         fi
+    #         # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
+    #     SHELL
+    # end
 
     # trigger para remover pasta residual da VM após destruí-la (evita conflito numa nova criação posterior)
     config.trigger.after :destroy do |trigger|
