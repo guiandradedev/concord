@@ -26,7 +26,7 @@ Vagrant.configure("2") do |config|
 
     env_vars = {
         "REPO_URL"   => ENV["REPO_URL"] || "https://github.com/guiandradedev/concord.git",
-        "BRANCH_NAME"=> ENV["BRANCH_NAME"] || "development",
+        "BRANCH_NAME"=> ENV["BRANCH_NAME"] || "infra/reuse-functions",
         "DB_USER"    => ENV["DB_USER"] || "root",
         "DB_PASS"    => ENV["DB_PASS"] || "example",
         "JWT_SECRET" => ENV["JWT_SECRET"] || "chave_muito_segura",
@@ -295,12 +295,12 @@ EOT
             vb.name = "broker"
         end
 
-        broker.vm.provision "shell", inline: client_gateway_setup + <<~'SHELL'
+        broker.vm.provision "shell", env: env_vars, inline: client_gateway_setup + <<~'SHELL'
             set -e
 
             export DEBIAN_FRONTEND=noninteractive
             apt-get update -y
-            apt-get install -y curl openjdk-17-jre-headless
+            apt-get install -y curl openjdk-17-jre-headless git
 
             id kafka >/dev/null 2>&1 || useradd --system --home-dir /opt/kafka --shell /usr/sbin/nologin kafka
 
@@ -369,14 +369,14 @@ EOF
                 sleep 2
             done
 
-            /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server 10.20.30.4:9092 >/dev/null
-            /opt/kafka/bin/kafka-topics.sh \
-                --bootstrap-server 10.20.30.4:9092 \
-                --create \
-                --if-not-exists \
-                --topic my-topic \
-                --partitions 1 \
-                --replication-factor 1
+            mkdir -p /home/application
+            cd /home/application
+            rm -rf concord
+            git clone --branch "${BRANCH_NAME}" --single-branch "${REPO_URL}" concord
+            cd concord/infra/kafka
+            
+            chmod +x init-topics.sh
+            KAFKA_BOOTSTRAP_SERVER=10.20.30.4:9092 ./init-topics.sh
         SHELL
     end
 
