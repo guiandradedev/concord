@@ -20,6 +20,8 @@ Vagrant.configure("2") do |config|
     # variáveis comuns
     is_arm = RUBY_PLATFORM.include?("arm64") || RUBY_PLATFORM.include?("aarch64")
     BOX = is_arm ? "bento/ubuntu-22.04" : "ubuntu/focal64"
+    API_BOX = "bento/ubuntu-24.04"
+    KAFKA_BOX = is_arm ? "bento/ubuntu-22.04" : "ubuntu/jammy64"
 
 
     env_vars = {
@@ -28,6 +30,7 @@ Vagrant.configure("2") do |config|
         "DB_USER"    => ENV["DB_USER"] || "root",
         "DB_PASS"    => ENV["DB_PASS"] || "example",
         "JWT_SECRET" => ENV["JWT_SECRET"] || "chave_muito_segura",
+        "KAFKA_CLIENT_ID" => ENV["KAFKA_CLIENT_ID"] || "realtime-gateway-client",
         "ALLOWED_ORIGIN_URL" => ENV["ALLOWED_ORIGIN_URL"] || "http://localhost:8069",
     }
 
@@ -210,7 +213,6 @@ EOF
         db.vm.hostname = "db"
 
         # interfaces de rede
-        db.vm.network "forwarded_port", guest:22, host: "2234"
         db.vm.network "private_network", ip: "10.20.30.3", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
         
         # configs vbox
@@ -240,7 +242,7 @@ EOF
     # VM 2: API
     config.vm.define "api" do |api|
         # configs gerais
-        api.vm.box = BOX
+        api.vm.box = API_BOX
         api.vm.hostname = "api"
 
         # interfaces de rede
@@ -258,7 +260,7 @@ EOF
         # shell script
         api.vm.provision "shell", env: env_vars, inline: client_gateway_setup + <<~SHELL
             apt-get update -y
-            apt-get install -y openjdk-21-jdk git
+            apt-get install -y openjdk-21-jdk-headless git
 
             
 
@@ -285,7 +287,7 @@ EOF
             Environment="DATABASE_USERNAME=${DB_USER}"
             Environment="DATABASE_PASSWORD=${DB_PASS}"
             Environment="ALLOWED_ORIGIN_URL=${ALLOWED_ORIGIN_URL}"
-            Environment="KAFKA_BROKERS=10.20.30.4:9092"
+            Environment="KAFKA_BOOTSTRAP_SERVERS=10.20.30.4:9092"
             Environment="JWT_SECRET=${JWT_SECRET}"
             ExecStart=/usr/bin/java -jar /home/application/concord/webserver/target/demo-0.0.1-SNAPSHOT.jar
             SuccessExitStatus=143
@@ -301,83 +303,170 @@ EOF
         SHELL
     end
 
-    # # VM 4: Broker de Mensagens
-    # config.vm.define "broker" do |broker|
-    #     # configs gerais
-    #     broker.vm.box = BOX
-    #     broker.vm.hostname = "broker"
+    # VM 4: Broker de Mensagens
+    config.vm.define "broker" do |broker|
+        broker.vm.box = KAFKA_BOX
+        broker.vm.hostname = "broker"
 
-    #     # interfaces de rede
-    #     broker.vm.network "forwarded_port", guest:22, host: "2232"
-    #     broker.vm.network "private_network", ip: "10.20.30.4", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+        broker.vm.network "private_network", ip: "10.20.30.4", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
 
-    #     # configs vbox
-    #     broker.vm.provider "virtualbox" do |vb|
-    #         vb.gui = !is_arm
-    #         vb.memory = "1024"
-    #         vb.cpus = 1
-    #         vb.name = "broker"
-    #     end
+        broker.vm.provider "virtualbox" do |vb|
+            vb.gui = !is_arm
+            vb.memory = "1024"
+            vb.cpus = 1
+            vb.name = "broker"
+        end
 
-    #     # shell script
-    #     broker.vm.provision "shell", inline: <<~SHELL
-    #         sudo apt-get -y update
+        broker.vm.provision "shell", inline: client_gateway_setup + <<~'SHELL'
+            set -e
 
-    #         apt-get install -y git
-            
-    #         mkdir -p /home/application
-    #         cd /home/application
-    #         if [ ! -d /home/application/concord ]; then
-    #             git clone https://github.com/guiandradedev/concord.git
-    #         fi
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -y
+            apt-get install -y curl openjdk-17-jre-headless
 
-    #         apt-get install -y openjdk-21-jdk git
+            id kafka >/dev/null 2>&1 || useradd --system --home-dir /opt/kafka --shell /usr/sbin/nologin kafka
 
-    #         curl -O https://dlcdn.apache.org/kafka/4.3.1/kafka_2.13-4.3.1.tgz
-    #         tar -xzf kafka_2.13-4.3.1.tgz
-    #         cd kafka_2.13-4.3.1
+            if [ ! -x /opt/kafka/bin/kafka-server-start.sh ]; then
+                curl --retry 3 -fsSL https://dlcdn.apache.org/kafka/4.3.1/kafka_2.13-4.3.1.tgz -o /tmp/kafka.tgz
+                mkdir -p /opt/kafka
+                tar -xzf /tmp/kafka.tgz --strip-components=1 -C /opt/kafka
+                rm -f /tmp/kafka.tgz
+            fi
 
-    #         KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
-    #         bin/kafka-storage.sh format --standalone -t $KAFKA_CLUSTER_ID -c config/server.properties
-    #         bin/kafka-server-start.sh config/server.properties
+            mkdir -p /var/lib/kafka/data
 
+cat > /opt/kafka/config/server.properties <<'EOF'
+process.roles=broker,controller
+node.id=1
+controller.quorum.bootstrap.servers=localhost:9093
+listeners=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+advertised.listeners=PLAINTEXT://10.20.30.4:9092
+listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+controller.listener.names=CONTROLLER
+inter.broker.listener.name=PLAINTEXT
+log.dirs=/var/lib/kafka/data
+num.partitions=1
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+auto.create.topics.enable=true
+EOF
 
-    #         # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
-    #     SHELL
-    # end
+            chown -R kafka:kafka /opt/kafka /var/lib/kafka
 
-    # # VM 5: Gateway Realtime
-    # config.vm.define "gateway" do |gateway|
-    #     # configs gerais
-    #     gateway.vm.box = BOX
-    #     gateway.vm.hostname = "gateway"
+            if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+                KAFKA_CLUSTER_ID=$(/opt/kafka/bin/kafka-storage.sh random-uuid)
+                runuser -u kafka -- /opt/kafka/bin/kafka-storage.sh format --standalone -t "$KAFKA_CLUSTER_ID" -c /opt/kafka/config/server.properties
+            fi
 
-    #     # interfaces de rede
-    #     gateway.vm.network "forwarded_port", guest:22, host: "2233"
-    #     gateway.vm.network "private_network", ip: "10.20.30.5", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+cat > /etc/systemd/system/kafka.service <<'EOF'
+[Unit]
+Description=Apache Kafka
+Wants=network-online.target
+After=network-online.target concord-default-route.service
 
-    #     # configs vbox
-    #     gateway.vm.provider "virtualbox" do |vb|
-    #         vb.gui = !is_arm
-    #         vb.memory = "1024"
-    #         vb.cpus = 1
-    #         vb.name = "gateway"
-    #     end
+[Service]
+Type=simple
+User=kafka
+Group=kafka
+WorkingDirectory=/opt/kafka
+Environment="KAFKA_HEAP_OPTS=-Xms256m -Xmx512m"
+ExecStart=/opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
+ExecStop=/opt/kafka/bin/kafka-server-stop.sh
+Restart=on-failure
+RestartSec=5
 
-    #     # shell script
-    #     gateway.vm.provision "shell", inline: <<~SHELL
-    #         sudo apt-get -y update
+[Install]
+WantedBy=multi-user.target
+EOF
 
-    #         apt-get install -y git
-            
-    #         mkdir -p /home/application
-    #         cd /home/application
-    #         if [ ! -d /home/application/concord ]; then
-    #             git clone https://github.com/guiandradedev/concord.git
-    #         fi
-    #         # TODO: adicionar carregamento apenas do executável ou pasta específica quando estiver de acordo
-    #     SHELL
-    # end
+            systemctl daemon-reload
+            systemctl enable kafka
+            systemctl restart kafka
+
+            for attempt in $(seq 1 30); do
+                if /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server 10.20.30.4:9092 >/dev/null 2>&1; then
+                    break
+                fi
+                sleep 2
+            done
+
+            /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server 10.20.30.4:9092 >/dev/null
+            /opt/kafka/bin/kafka-topics.sh \
+                --bootstrap-server 10.20.30.4:9092 \
+                --create \
+                --if-not-exists \
+                --topic my-topic \
+                --partitions 1 \
+                --replication-factor 1
+        SHELL
+    end
+
+    # VM 5: Gateway Realtime
+    config.vm.define "gateway" do |gateway|
+        gateway.vm.box = BOX
+        gateway.vm.hostname = "gateway"
+
+        gateway.vm.network "private_network", ip: "10.20.30.5", netmask: "255.255.255.240", virtualbox__intnet: "intnet1"
+
+        gateway.vm.provider "virtualbox" do |vb|
+            vb.gui = !is_arm
+            vb.memory = "1024"
+            vb.cpus = 1
+            vb.name = "gateway"
+        end
+
+        gateway.vm.provision "shell", env: env_vars, inline: client_gateway_setup + <<~SHELL
+            set -e
+
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -y
+            apt-get install -y curl git netcat-openbsd
+
+            curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+            apt-get install -y nodejs
+
+            mkdir -p /home/application
+            cd /home/application
+            rm -rf concord
+            git clone --branch "${BRANCH_NAME}" --single-branch "${REPO_URL}" concord
+            cd concord/realtime-gateway
+
+cat > .env <<EOF
+PORT=3000
+KAFKA_CLIENT_ID=${KAFKA_CLIENT_ID}
+KAFKA_BROKERS=10.20.30.4:9092
+EOF
+
+            npm ci
+            npm run build
+
+cat > /etc/systemd/system/concord-gateway.service <<'EOF'
+[Unit]
+Description=Concord Realtime Gateway
+Wants=network-online.target
+After=network-online.target concord-default-route.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/application/concord/realtime-gateway
+Environment=NODE_ENV=production
+ExecStartPre=/bin/sh -c 'until nc -z 10.20.30.4 9092; do sleep 2; done'
+ExecStart=/usr/bin/npm run start
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+            systemctl daemon-reload
+            systemctl enable concord-gateway
+            systemctl restart concord-gateway
+        SHELL
+    end
 
     # trigger para remover pasta residual da VM após destruí-la (evita conflito numa nova criação posterior)
     config.trigger.after :destroy do |trigger|
