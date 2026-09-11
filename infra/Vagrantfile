@@ -40,19 +40,19 @@ Vagrant.configure("2") do |config|
     config.vm.provider "virtualbox" do |vb|
         vb.gui = !is_arm
     end
-    
+
     # dicionário de vms com as configurações de cada uma
     vms = {
-        "proxy"   => { ip: "10.20.30.1", box: is_arm ? "bento/ubuntu-22.04" : "ubuntu/focal64", ram: 1024, cpus: 1 },
-        "api"     => { ip: "10.20.30.2", box: is_arm ? "bento/ubuntu-22.04" : "ubuntu/focal64", ram: 2048, cpus: 1 },
-        "db"      => { ip: "10.20.30.3", box: is_arm ? "bento/ubuntu-22.04" : "ubuntu/focal64", ram: 1024, cpus: 1 },
-        "broker"  => { ip: "10.20.30.4", box: is_arm ? "bento/ubuntu-22.04" : "ubuntu/jammy64", ram: 1024, cpus: 1 },
-        "gateway" => { ip: "10.20.30.5", box: is_arm ? "bento/ubuntu-22.04" : "ubuntu/focal64", ram: 1024, cpus: 1 }
+        "proxy"   => { ip: "10.20.30.1", ram: 1024, cpus: 1 },
+        "api"     => { ip: "10.20.30.2", ram: 2048, cpus: 1 },
+        "db"      => { ip: "10.20.30.3", ram: 1024, cpus: 1 },
+        "broker"  => { ip: "10.20.30.4", ram: 1024, cpus: 1 },
+        "gateway" => { ip: "10.20.30.5", ram: 1024, cpus: 1 }
     }
 
     vms.each do |nome, specs|
         config.vm.define nome do |node|
-            node.vm.box = specs[:box]
+            node.vm.box = "bento/ubuntu-24.04"
             node.vm.hostname = nome
             
             # rede interna 
