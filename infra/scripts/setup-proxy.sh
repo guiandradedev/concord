@@ -67,32 +67,10 @@ RestartSec=10
 WantedBy=multi-user.target
 EOT
 
-cat > /etc/nginx/sites-available/concord <<'EOF'
-server {
-    listen 80;
-    server_name _;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    location /api/ {
-        proxy_pass http://10.20.30.2:8082/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    location /socket.io/ {
-        proxy_pass http://10.20.30.5:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-    }
-}
-EOF
+cp ../infra/nginx-reverse-proxy.conf /etc/nginx/sites-available/concord
+sed -i 's|frontend:3000|127.0.0.1:3000|' /etc/nginx/sites-available/concord
+sed -i 's|webserver:8082|10.20.30.2:8082|' /etc/nginx/sites-available/concord
+sed -i 's|realtime-gateway:3000|10.20.30.5:3000|' /etc/nginx/sites-available/concord
 
 ln -sf /etc/nginx/sites-available/concord /etc/nginx/sites-enabled/concord
 rm -f /etc/nginx/sites-enabled/default

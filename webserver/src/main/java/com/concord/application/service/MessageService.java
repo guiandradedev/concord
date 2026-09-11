@@ -82,11 +82,14 @@ public class MessageService {
         messagePublisher.publish(message);
     }
 
-    public List<MessageEntity> getMessagesFromUser(String fromUserId, String toUserId) {
+    public List<MessageResponse> getMessagesFromUser(String fromUserId, String toUserId) {
         return messageRepository.findConversation(
                 UUID.fromString(fromUserId), 
                 UUID.fromString(toUserId), 
-                FromType.USER);
+                FromType.USER)
+                .stream()
+                .map(MessageResponse::fromEntity)
+                .toList();
     }
 
     public List<MessageEntity> getRecentMessages(UUID userId) {

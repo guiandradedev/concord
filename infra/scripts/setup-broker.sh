@@ -73,11 +73,11 @@ for attempt in $(seq 1 30); do
     sleep 2
 done
 
-/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server 10.20.30.4:9092 >/dev/null
-/opt/kafka/bin/kafka-topics.sh \
-    --bootstrap-server 10.20.30.4:9092 \
-    --create \
-    --if-not-exists \
-    --topic my-topic \
-    --partitions 1 \
-    --replication-factor 1
+mkdir -p /home/application
+cd /home/application
+rm -rf concord
+git clone --branch "${BRANCH_NAME}" --single-branch "${REPO_URL}" concord
+cd concord/infra/kafka
+
+chmod +x init-topics.sh
+KAFKA_BOOTSTRAP_SERVER=10.20.30.4:9092 ./init-topics.sh

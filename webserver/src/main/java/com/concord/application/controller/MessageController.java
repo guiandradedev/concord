@@ -1,8 +1,6 @@
 package com.concord.application.controller;
 
 import java.util.List;
-import java.util.UUID;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,11 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.concord.application.domain.dto.UserDTO;
 import com.concord.application.domain.dto.message.MessageResponse;
-import com.concord.application.domain.dto.message.SendMessageDTO;
 import com.concord.application.domain.dto.message.SendMessageRequest;
-import com.concord.application.domain.model.MessageEntity;
 import com.concord.application.domain.model.UserEntity;
-import com.concord.application.exception.NotFoundException;
 import com.concord.application.exception.PublishException;
 import com.concord.application.service.MessageService;
 
@@ -53,15 +48,15 @@ public class MessageController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<MessageEntity>> getMessagesFromUser(
+    public ResponseEntity<List<MessageResponse>> getMessagesFromUser(
             @PathVariable String userId,
             @AuthenticationPrincipal UserEntity currentUser
     ) {
         String loggedUserId = currentUser.getId().toString();
 
-        List<MessageEntity> historico = messageService.getMessagesFromUser(loggedUserId, userId);
+        List<MessageResponse> history = messageService.getMessagesFromUser(loggedUserId, userId);
 
-        return ResponseEntity.ok(historico);
+        return ResponseEntity.ok(history);
     }
 
     @GetMapping("/channel/{channelId}")
