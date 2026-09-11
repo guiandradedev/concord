@@ -1,0 +1,15 @@
+# Dockerfile utilizado para inicializar o kafka.
+
+FROM apache/kafka:3.7.0
+
+USER root
+
+COPY init-topics.sh /concord-kafka-init.sh
+
+# Remove CRLF caso o arquivo tenha sido editado no Windows
+RUN sed -i 's/\r$//' /concord-kafka-init.sh \
+    && chmod +x /concord-kafka-init.sh
+
+USER appuser
+
+CMD ["/concord-kafka-init.sh"]

@@ -1,16 +1,19 @@
 package com.concord.application.handler;
 
-import com.concord.application.exception.AlreadyExistsException;
-import com.concord.application.exception.ErrorResponse;
-import com.concord.application.exception.NotFoundException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.concord.application.exception.AlreadyExistsException;
+import com.concord.application.exception.ErrorResponse;
+import com.concord.application.exception.NotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -25,6 +28,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .message("Rota nao encontrada: /" + ex.getResourcePath())
+                .status(HttpStatus.NOT_FOUND.value())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .message("Credenciais invalidas")
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+    
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex) {
         ErrorResponse response = ErrorResponse.builder()
@@ -34,6 +57,16 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
+
+    // @ExceptionHandler(HttpMessageNotReadableException.class)
+    // public ResponseEntity<ErrorResponse> handleMissingRequestBody(HttpMessageNotReadableException ex) {
+    //     ErrorResponse response = ErrorResponse.builder()
+    //             .message("O corpo da requisicao e obrigatorio")
+    //             .status(HttpStatus.BAD_REQUEST.value())
+    //             .build();
+
+    //     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    // }
 
     @ExceptionHandler(AlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleAlreadyExistsException(AlreadyExistsException ex) {

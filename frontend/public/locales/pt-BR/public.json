@@ -1,0 +1,55 @@
+{
+  "login": {
+    "title": "Entre em sua conta",
+    "description": "Insira seu email e senha para acessar sua conta.",
+    "email": {
+      "label": "Email",
+      "placeholder": "exemplo@email.com",
+      "error_email_required": "Email é obrigatório",
+      "error_email_invalid": "Email inválido"
+    },
+    "password": {
+      "label": "Senha",
+      "placeholder": "Senha",
+      "error_password_required": "Senha é obrigatória",
+      "forgotPassword": "Esqueceu sua senha?"
+    },
+    "signInButton": "Entrar",
+    "signUp": {
+      "text": "Não tem uma conta?",
+      "link": "Cadastre-se"
+    }
+  },
+  "register": {
+    "title": "Crie sua conta",
+    "description": "Preencha o formulário abaixo para criar sua conta.",
+    "name": {
+      "label": "Nome Completo",
+      "placeholder": "João Silva",
+      "error_name_required": "Nome é obrigatório"
+    },
+    "email": {
+      "label": "Email",
+      "placeholder": "exemplo@email.com",
+      "error_email_required": "Email é obrigatório",
+      "error_email_invalid": "Email inválido",
+      "error_email_already_exists": "Este e-mail já está em uso"
+    },
+    "password": {
+      "label": "Senha",
+      "placeholder": "Senha",
+      "error_password_required": "Senha é obrigatória",
+      "error_password_min_length": "A senha deve ter pelo menos 6 caracteres",
+      "confirmPassword": {
+        "label": "Confirme a senha",
+        "placeholder": "Confirme a senha",
+        "error_confirmPassword_required": "Confirmação de senha é obrigatória",
+        "error_confirmPassword_mismatch": "As senhas não coincidem"
+      }
+    },
+    "createAccountButton": "Criar Conta",
+    "alreadyHaveAccount": "Já tem uma conta?",
+    "signInLink": "Faça login",
+    "error_generic": "Ocorreu um erro ao criar a conta. Tente novamente."
+  }
+}
