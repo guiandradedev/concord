@@ -23,80 +23,85 @@ export function SignupForm({
 }) {
   const [t] = useTranslation('public')
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props} onSubmit={onSubmit}>
+    <form className={cn("flex flex-col gap-7", className)} {...props} onSubmit={onSubmit}>
       <FieldGroup>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">{t('register.title')}</h1>
-          <p className="text-sm text-balance text-muted-foreground">
+        <div className="flex flex-col gap-2 text-left">
+          <p className="text-sm font-medium text-primary">A clearer way to connect</p>
+          <h1 className="text-3xl font-semibold tracking-tight">{t('register.title')}</h1>
+          <p className="max-w-sm text-sm leading-6 text-muted-foreground">
             {t('register.description')}
           </p>
         </div>
-        <Field>
+        <Field data-invalid={!!form.formState.errors.name}>
           <FieldLabel htmlFor="name">{t('register.name.label')}</FieldLabel>
           <Input
             id="name"
             type="text"
             placeholder={t('register.name.placeholder')}
             required
+            aria-invalid={!!form.formState.errors.name}
             className="bg-background"
             {...form.register("name")}
           />
-        </Field>
-        {form.formState.errors.name && (
-          <FieldDescription className="text-red-500">
+          {form.formState.errors.name && (
+            <FieldDescription className="text-destructive">
             {form.formState.errors.name.message}
-          </FieldDescription>
-        )}
-        <Field>
+            </FieldDescription>
+          )}
+        </Field>
+        <Field data-invalid={!!form.formState.errors.email}>
           <FieldLabel htmlFor="email">{t('register.email.label')}</FieldLabel>
           <Input
             id="email"
             type="email"
             placeholder={t('register.email.placeholder')}
             required
+            aria-invalid={!!form.formState.errors.email}
             className="bg-background"
             {...form.register("email")}
           />
-        </Field>
-        {form.formState.errors.email && (
-          <FieldDescription className="text-red-500">
+          {form.formState.errors.email && (
+            <FieldDescription className="text-destructive">
             {form.formState.errors.email.message}
-          </FieldDescription>
-        )}
-        <Field>
+            </FieldDescription>
+          )}
+        </Field>
+        <Field data-invalid={!!form.formState.errors.password}>
           <FieldLabel htmlFor="password">{t('register.password.label')}</FieldLabel>
           <Input
             id="password"
             type="password"
             placeholder={t('register.password.placeholder')}
             required
+            aria-invalid={!!form.formState.errors.password}
             className="bg-background"
             {...form.register("password")}
           />
-        </Field>
-        {form.formState.errors.password && (
-          <FieldDescription className="text-red-500">
+          {form.formState.errors.password && (
+            <FieldDescription className="text-destructive">
             {form.formState.errors.password.message}
-          </FieldDescription>
-        )}
-        <Field>
+            </FieldDescription>
+          )}
+        </Field>
+        <Field data-invalid={!!form.formState.errors.confirmPassword}>
           <FieldLabel htmlFor="confirm-password">{t('register.password.confirmPassword.label')}</FieldLabel>
           <Input
             id="confirm-password"
             type="password"
             placeholder={t('register.password.confirmPassword.placeholder')}
             required
+            aria-invalid={!!form.formState.errors.confirmPassword}
             className="bg-background"
             {...form.register("confirmPassword")}
           />
-        </Field>
-        {form.formState.errors.confirmPassword && (
-          <FieldDescription className="text-red-500">
+          {form.formState.errors.confirmPassword && (
+            <FieldDescription className="text-destructive">
             {form.formState.errors.confirmPassword.message}
-          </FieldDescription>
-        )}
+            </FieldDescription>
+          )}
+        </Field>
         <Field>
-          <Button type="submit">{t('register.createAccountButton')}</Button>
+          <Button className="h-11 w-full" type="submit">{t('register.createAccountButton')}</Button>
         </Field>
         <Field>
           <FieldDescription className="px-6 text-center">

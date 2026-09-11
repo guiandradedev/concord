@@ -1,4 +1,5 @@
-import { GalleryVerticalEndIcon } from "lucide-react";
+import { Link } from "react-router";
+import { MessageCircle } from "lucide-react";
 import { LoginForm } from "./login-form";
 import { useAuth } from "~/contexts/AuthContext";
 import { z } from "zod";
@@ -7,6 +8,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { useMemo } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+
+type LoginErrorResponse = {
+  message?: string;
+  status?: number;
+};
 
 // Tipagem do formulário
 const getSigninSchema = (t: (key: string, options?: any) => string) =>
@@ -37,33 +45,44 @@ export default function LoginScreen() {
   });
 
   const handleSubmit = form.handleSubmit(async (data) => {
-    await login(data.email, data.password);
-    navigate("/app");
+    try {
+      await login(data.email, data.password);
+      navigate("/app");
+    } catch (error) {
+      if (axios.isAxiosError<LoginErrorResponse>(error)) {
+        const status = error.response?.status ?? error.response?.data?.status;
+        const message = error.response?.data?.message;
+
+        if (status === 401) {
+          toast.error(message ?? t("login.invalidCredentials", "Invalid credentials"));
+          return;
+        }
+
+        toast.error(message ?? t("login.error_generic", "Unable to sign in. Please try again."));
+        return;
+      }
+
+      toast.error(t("login.error_generic", "Unable to sign in. Please try again."));
+    }
   });
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex justify-center gap-2 md:justify-start">
-          <a href="/" className="flex items-center gap-2 font-medium">
-            <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <GalleryVerticalEndIcon className="size-4" />
-            </div>
-            {t("common:title")}
-          </a>
+    <div className="min-h-svh bg-background px-6 py-7 md:px-10 md:py-9">
+      <header className="mx-auto flex w-full max-w-5xl items-center justify-between">
+        <Link to="/" className="flex items-center gap-3 text-sm font-semibold tracking-tight">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <MessageCircle aria-hidden="true" className="size-5" />
+          </span>
+          {t("common:title")}
+        </Link>
+        <Link to="/signup" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+          {t("login.signUp.link")}
+        </Link>
+      </header>
+      <div className="mx-auto flex min-h-[calc(100svh-9rem)] w-full max-w-md items-center justify-center py-12">
+        <div className="w-full rounded-3xl border border-border/80 bg-card p-6 shadow-[0_20px_60px_oklch(0.2_0.03_265/0.06)] sm:p-9">
+          <LoginForm onSubmit={handleSubmit} form={form} />
         </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
-            <LoginForm onSubmit={handleSubmit} form={form} />
-          </div>
-        </div>
-      </div>
-      <div className="relative hidden bg-muted lg:block">
-        {/* <img
-          src="/placeholder.svg"
-          alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        /> */}
       </div>
     </div>
   )

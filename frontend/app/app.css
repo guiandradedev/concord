@@ -12,7 +12,7 @@
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-background;
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
@@ -63,24 +63,33 @@ body {
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --signal-ink: #10182b;
+  --signal-mint: #d6ff73;
+  --signal-coral: #ff9770;
+  --signal-green: #58c98a;
+  --signal-lilac: #9aa7f7;
+  --signal-paper: #f5f3ea;
+  --signal-cloud: #edf0eb;
+  --signal-input: #f7f8f4;
+  --signal-active: #27805c;
+  --background: oklch(0.985 0.012 92);
+  --foreground: oklch(0.185 0.035 265);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.27 0.055 264);
+  --primary-foreground: oklch(0.985 0.012 92);
+  --secondary: oklch(0.93 0.03 94);
+  --secondary-foreground: oklch(0.27 0.055 264);
+  --muted: oklch(0.95 0.018 92);
+  --muted-foreground: oklch(0.49 0.035 264);
+  --accent: oklch(0.88 0.13 157);
+  --accent-foreground: oklch(0.21 0.05 264);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.88 0.025 92);
+  --input: oklch(0.85 0.03 92);
+  --ring: oklch(0.72 0.13 157);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -140,5 +149,22 @@ body {
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .signal-grid {
+    background-image: linear-gradient(
+        to right,
+        oklch(1 0 0 / 0.07) 1px,
+        transparent 1px
+      ),
+      linear-gradient(to bottom, oklch(1 0 0 / 0.07) 1px, transparent 1px);
+    background-size: 42px 42px;
+  }
+
+  .signal-glow {
+    box-shadow: 0 0 0 1px oklch(0.84 0.17 157 / 0.18),
+      0 24px 80px oklch(0.1 0.04 264 / 0.3);
   }
 }
