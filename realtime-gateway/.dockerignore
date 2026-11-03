@@ -6,4 +6,6 @@
 dist
 node_modules
 npm-debug.log*
-src/tests
+src/examples
+src/**/*.test.ts
+vitest.config.mts

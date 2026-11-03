@@ -1,0 +1,24 @@
+name: CI Test Workflow
+
+# Toda vez que o workflow de CI for completo executa o workflow de build.
+on: 
+    workflow_run:
+        workflows: ["CI"]
+        types: [completed]
+
+# Build deve ser feito em paralelo com uma etapa final de push unificada, para evitar que um build falho altere a versão dos demais.
+jobs:
+  build:
+    if: >-
+        ${{
+            github.event.workflow_run.conclusion == 'success'
+        }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Building project
+        run: echo "Building project..."
