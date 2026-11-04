@@ -1,0 +1,71 @@
+name: CI Test Workflow
+
+# Toda vez que fazer um push ou PR na main ou na development inicia uma execução do workflow
+on: 
+    push:
+        branches:
+            - main
+            - development
+            - tests/gateway
+    pull_request:
+        branches:
+            - main
+            - development
+        types: [ opened, synchronize, reopened ]
+
+jobs:
+    gateway-test:
+        name: Realtime Gateway Test
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./realtime-gateway
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Installing dependencies
+              run: npm install
+
+            - name: Running unit tests
+              run: npm test
+
+    backend-test:
+        name: Backend Test
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            # Adicionar steps
+
+            - name: Running unit tests
+              run: echo "Running tests..."
+    
+    e2e-test:
+        name: E2E Test
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            # Adicionar steps
+
+            - name: Running tests
+              run: echo "Running tests..."
+
+    integration-test:
+        name: Integration Test
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            # Adicionar steps
+
+            - name: Running tests
+              run: echo "Running tests..."

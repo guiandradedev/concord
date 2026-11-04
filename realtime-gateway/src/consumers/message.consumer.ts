@@ -1,41 +1,33 @@
-import { kafka } from "../lib/kafka";
+import type { Kafka } from "kafkajs";
+import type { Server } from "socket.io";
 import { Consumer } from "./consumer";
-import { io, connectedUsers } from "../socket/server";
+import { ConnectedUsers } from "../sessions/connected-users";
+import { handleMessage } from "../handlers/message.handler";
 
 export class MessageConsumer extends Consumer {
     private readonly topic = "my-topic";
 
+    constructor(
+        private readonly kafka: Kafka,
+        private readonly io: Server,
+        private readonly users: ConnectedUsers,
+    ) {
+        super();
+    }
+
     consume(): void {
-        const consumer = kafka.consumer({ groupId: "my-group" });
+        const consumer = this.kafka.consumer({ groupId: "my-group" });
 
         const run = async () => {
             await consumer.connect();
             await consumer.subscribe({ topic: this.topic, fromBeginning: true });
 
             await consumer.run({
-                eachMessage: async ({ topic, partition, message }) => {
+                eachMessage: async ({ message }) => {
                     try {
-                        const rawValue = message.value?.toString() || "{}";
-                        const parsedData = JSON.parse(JSON.parse(rawValue));
-                        
-                        const targetUserId = parsedData.target || parsedData.receiver;
-
-                        console.log(`[Kafka] Mensagem recebida para o alvo: ${targetUserId}`);
-
-                        if (targetUserId && connectedUsers.has(targetUserId)) {
-                            const socketIds = connectedUsers.get(targetUserId);
-                            
-                            console.log(socketIds);
-
-                            socketIds?.forEach(socketId => {
-                                io.to(socketId).emit("new-message", parsedData);
-                            })
-                            
-                            console.log(`Mensagem repassada para o usuario ${targetUserId}`);
-                        } else {
-                            console.log(`Usuario ${targetUserId} está offline. Ignorando.`);
-                        }
-
+                        handleMessage(message.value?.toString() || '"{}"', this.users, {
+                            emit: (socketId, event, payload) => this.io.to(socketId).emit(event, payload),
+                        });
                     } catch (error) {
                         console.error("Erro ao processar mensagem do Kafka:", error);
                     }
