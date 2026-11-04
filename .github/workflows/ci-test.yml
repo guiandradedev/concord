@@ -29,7 +29,7 @@ jobs:
               run: npm install
 
             - name: Running unit tests
-              run: echo "Running tests..."   
+              run: npm test
 
     backend-test:
         name: Backend Test

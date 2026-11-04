@@ -5,7 +5,13 @@ export interface Emitter {
 }
 
 export function handleMessage(raw: string, users: ConnectedUsers, emitter: Emitter): boolean {
-    const data = JSON.parse(JSON.parse(raw));
+    let data: any;
+    try {
+        data = JSON.parse(JSON.parse(raw));
+    } catch (error) {
+        console.error(`Erro ao analisar o payload: ${error}`);
+        return false;
+    }
     const targetUserId = data.target || data.receiver;
     const socketIds = targetUserId ? users.socketsOf(targetUserId) : [];
 
