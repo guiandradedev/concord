@@ -1,0 +1,27 @@
+apiVersion: apps/v1                           # Versão da API
+kind: Deployment                              # Tipo do manifesto
+metadata:                                     #
+  name: webserver                             # Identificação unica do objeto
+spec:                                         # O que deve ter na especificação do objeto
+  selector:                                   # Identificar quais pods pertencem a este deployment
+    matchLabels:                              #
+      app: webserver                          #
+  replicas: 1                                 # Quantidade de pods que devem ser criados
+  template:                                   # Modelo do pod a ser criado
+    metadata:                                 #
+      labels:                                 # Qualquer pod criado por este deployment terá a label app=webserver
+        app: webserver                        #
+    spec:                                     # O que deve ter na especificação do pod
+      containers:                             #
+      - name: webserver                       # Nome do container
+        image: guiiandradedev/webserver:main  # Imagem publicada no Docker Hub pelo CI
+        imagePullPolicy: Always               # Sempre verifica o Docker Hub para pegar a versão mais recente da tag
+        ports:                                # Portas que o container irá expor
+        - containerPort: 8080                 #
+          name: http                          #
+        readinessProbe:                       # Só recebe tráfego quando o servidor estiver respondendo
+          httpGet:                            #
+            path: /                           #
+            port: http                        #
+          initialDelaySeconds: 3              #
+          periodSeconds: 5                    #

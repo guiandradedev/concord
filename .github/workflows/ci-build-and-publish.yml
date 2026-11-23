@@ -147,4 +147,9 @@ jobs:
               echo "Publishing ${IMAGE}..."
               docker push "$IMAGE"
 
+              IMAGE_MAIN="${DOCKER_USERNAME}/${SERVICE}:main"
+              docker tag "${SERVICE}:${VERSION}" "$IMAGE_MAIN"
+              echo "Publishing ${IMAGE_MAIN}..."
+              docker push "$IMAGE_MAIN"
+
             done

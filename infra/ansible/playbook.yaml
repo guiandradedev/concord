@@ -1,8 +1,13 @@
+# https://www.ansiblebyexample.com/articles/streamlining-kubernetes-development-with-ansible-and-minikube
 - name: Provisionar nó Kubernetes
   hosts: k8s
   vars:
     kubectl_version: "v1.31.0"
     project_dir: /app
+    images: # imagens publicadas pelo CI no Docker Hub
+      - guiiandradedev/webserver:main
+      - guiiandradedev/realtime-gateway:main
+      - guiiandradedev/frontend:main
 
   tasks:
   # Configurações iniciais
@@ -47,7 +52,7 @@
         mode: "0755"
 
     - name: Verificar se o minikube já está rodando
-      command: minikube version
+      command: minikube status
       register: mk_status
       failed_when: false
       changed_when: false
@@ -57,3 +62,52 @@
         minikube start --driver=docker --cpus=2 --memory=3000
         --ports=80:80 --ports=443:443
       when: mk_status.rc != 0
+
+    - name: Habilitar Ingress NGINX
+      command: minikube addons enable ingress
+
+    # O webhook de validação do ingress só responde depois que o controlador sobe
+    - name: Aguardar controlador do Ingress NGINX
+      command: >
+        kubectl wait --namespace ingress-nginx --for=condition=ready pod
+        --selector=app.kubernetes.io/component=controller --timeout=300s
+      changed_when: false
+
+    - name: Baixar imagens do Docker Hub para o minikube
+      command: minikube image pull {{ item }}
+      loop: "{{ images }}"
+      changed_when: false
+
+    - name: Aplicar manifests
+      command: kubectl apply -k {{ project_dir }}/k8s
+
+    - name: Aguardar deployments
+      block:
+        - name: Aguardar deployments ficarem disponíveis
+          command: kubectl wait --for=condition=available deploy --all -n concord --timeout=300s
+          changed_when: false
+      rescue:
+        - name: Coletar diagnóstico do cluster
+          shell: |
+            echo "pods:"
+            kubectl get pods -A -o wide
+            echo "eventos:"
+            kubectl get events -n concord --sort-by=.lastTimestamp
+            echo "pods detalhados:"
+            kubectl describe pods -n concord
+            echo "logs dos pods:"
+            for p in $(kubectl get pods -n concord -o name); do
+              echo "--- $p ---"
+              kubectl logs -n concord "$p" --all-containers --tail=50 || true
+            done
+          register: diag
+          changed_when: false
+          failed_when: false
+
+        - name: Exibir diagnóstico
+          debug:
+            var: diag.stdout_lines
+
+        - name: Falhar após diagnóstico
+          fail:
+            msg: "Deployments não ficaram disponíveis em 300s, veja o diagnóstico acima."

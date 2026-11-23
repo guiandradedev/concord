@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1        # Versão da API
+kind: Ingress                           # Tipo de manifesto
+metadata:                               #
+  name: webserver                       # Identificação unica do objeto
+spec:                                   #
+  ingressClassName: nginx               # Controlador criado pelo addon ingress do minikube
+  rules:                                #
+  - http:                               # Sem host: responde a qualquer requisição HTTP na porta 80
+      paths:                            #
+      - path: /                         # Todas as rotas
+        pathType: Prefix                #
+        backend:                        # Para onde o tráfego é encaminhado
+          service:                      #
+            name: webserver             # Serviço do webserver
+            port:                       #
+              number: 80                #

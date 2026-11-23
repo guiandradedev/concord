@@ -3,17 +3,7 @@ kind: Kustomization
 
 namespace: concord 
 
-labels:
-  - pairs:
-      projeto: concord
-
 resources:
   - namespace.yaml
   - ingress.yaml
-  - webserver/deployment.yaml
-  - webserver/service.yaml
-
-images:
-  # - name: realtime-gateway
-  #   newName: seu-usuario/realtime-gateway
-  #   newTag: "1.0.0"
+  - webserver/
