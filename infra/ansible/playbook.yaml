@@ -1,0 +1,59 @@
+- name: Provisionar nó Kubernetes
+  hosts: k8s
+  vars:
+    kubectl_version: "v1.31.0"
+    project_dir: /app
+
+  tasks:
+  # Configurações iniciais
+    - name: Detectar arquitetura do SO
+      ansible.builtin.set_fact:
+        arch: "{{ 'arm64' if ansible_architecture in ['aarch64', 'arm64'] else 'amd64' }}"
+      
+    - name: Exibir arquitetura do SO
+      ansible.builtin.debug:
+        msg: "Arquitetura do SO detectada: {{ arch }}"
+
+  # Configurações do docker
+    - name: Instalar Docker
+      become: true
+      apt:
+        name: [docker.io, curl, conntrack]
+        update_cache: true
+
+    - name: Adicionar vagrant ao grupo docker
+      become: true
+      user:
+        name: vagrant
+        groups: docker
+        append: true
+
+    - name: Recarregar sessão para valer o grupo docker
+      meta: reset_connection
+
+  # Configurações do minikube e kubectl
+    - name: Instalar minikube
+      become: true
+      get_url:
+        url: "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-{{ arch }}"
+        dest: /usr/local/bin/minikube
+        mode: "0755"
+
+    - name: Instalar kubectl
+      become: true
+      get_url:
+        url: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/{{ arch }}/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: "0755"
+
+    - name: Verificar se o minikube já está rodando
+      command: minikube version
+      register: mk_status
+      failed_when: false
+      changed_when: false
+
+    - name: Iniciar minikube com driver Docker
+      command: >
+        minikube start --driver=docker --cpus=2 --memory=3000
+        --ports=80:80 --ports=443:443
+      when: mk_status.rc != 0
