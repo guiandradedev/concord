@@ -5,5 +5,11 @@ namespace: concord
 
 resources:
   - namespace.yaml
-  - ingress.yaml
+  # - ingress.yaml
+  - mysql/
   - webserver/
+
+secretGenerator:
+  - name: concord-secret
+    envs:
+      - .env

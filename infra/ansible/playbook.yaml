@@ -4,7 +4,8 @@
   vars:
     kubectl_version: "v1.31.0"
     project_dir: /app
-    images: # imagens publicadas pelo CI no Docker Hub
+    images: # imagens publicadas pelo CI no Docker Hub + dependências do cluster
+      - mysql:8.0
       - guiiandradedev/webserver:main
       - guiiandradedev/realtime-gateway:main
       - guiiandradedev/frontend:main
@@ -59,7 +60,7 @@
 
     - name: Iniciar minikube com driver Docker
       command: >
-        minikube start --driver=docker --cpus=2 --memory=3000
+        minikube start --driver=docker --cpus=2 --memory=2500
         --ports=80:80 --ports=443:443
       when: mk_status.rc != 0
 
@@ -78,14 +79,37 @@
       loop: "{{ images }}"
       changed_when: false
 
+    - name: Verificar se infra/k8s/.env existe
+      stat:
+        path: "{{ project_dir }}/k8s/.env"
+      register: k8s_env_file
+
+    - name: Falhar se infra/k8s/.env não existir
+      fail:
+        msg: "Arquivo infra/k8s/.env não encontrado. Execute 'cp infra/k8s/.env.example infra/k8s/.env' e configure as credenciais antes de provisionar."
+      when: not k8s_env_file.stat.exists
+
     - name: Aplicar manifests
       command: kubectl apply -k {{ project_dir }}/k8s
 
-    - name: Aguardar deployments
+    - name: Aguardar workloads ficarem disponíveis
       block:
+        - name: Aguardar StatefulSet do MySQL ficar pronto
+          command: kubectl rollout status statefulset/mysql -n concord --timeout=300s
+          changed_when: false
+
         - name: Aguardar deployments ficarem disponíveis
           command: kubectl wait --for=condition=available deploy --all -n concord --timeout=300s
           changed_when: false
+
+        - name: Aguardar StatefulSet do MySQL ficar pronto
+          command: kubectl rollout status statefulset/mysql -n concord --timeout=300s
+          changed_when: false
+          
+        - name: Aguardar deployments ficarem disponíveis
+          command: kubectl wait --for=condition=available deploy --all -n concord --timeout=300s
+          changed_when: false
+
       rescue:
         - name: Coletar diagnóstico do cluster
           shell: |

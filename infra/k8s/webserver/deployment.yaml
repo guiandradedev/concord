@@ -1,7 +1,7 @@
 apiVersion: apps/v1                           # Versão da API
 kind: Deployment                              # Tipo do manifesto
 metadata:                                     #
-  name: webserver                             # Identificação unica do objeto
+  name: webserver                             # Identificação única do objeto
 spec:                                         # O que deve ter na especificação do objeto
   selector:                                   # Identificar quais pods pertencem a este deployment
     matchLabels:                              #
@@ -12,16 +12,67 @@ spec:                                         # O que deve ter na especificaçã
       labels:                                 # Qualquer pod criado por este deployment terá a label app=webserver
         app: webserver                        #
     spec:                                     # O que deve ter na especificação do pod
+      initContainers:                         # Aguarda o MySQL aceitar conexões TCP antes de subir a API
+      - name: wait-for-mysql                  #
+        image: busybox:1.36                   #
+        command:                              #
+        - sh                                  #
+        - -c                                  #
+        - until nc -z mysql 3306; do echo "Aguardando MySQL..."; sleep 2; done
       containers:                             #
       - name: webserver                       # Nome do container
         image: guiiandradedev/webserver:main  # Imagem publicada no Docker Hub pelo CI
         imagePullPolicy: Always               # Sempre verifica o Docker Hub para pegar a versão mais recente da tag
         ports:                                # Portas que o container irá expor
-        - containerPort: 8080                 #
+        - containerPort: 8082                 # Porta configurada no Dockerfile e application.yaml
           name: http                          #
-        readinessProbe:                       # Só recebe tráfego quando o servidor estiver respondendo
-          httpGet:                            #
-            path: /                           #
+        env:                                  # Variáveis de ambiente da API
+        - name: SERVER_PORT                   #
+          value: "8082"                       #
+        - name: MYSQL_DATABASE                # Interpolada na DATABASE_URL abaixo via $(MYSQL_DATABASE)
+          valueFrom:                          #
+            secretKeyRef:                     #
+              name: concord-secret            # Secret gerado pelo Kustomize a partir de infra/k8s/.env
+              key: MYSQL_DATABASE             #
+        - name: DATABASE_URL                  #
+          value: "jdbc:mysql://mysql:3306/$(MYSQL_DATABASE)?createDatabaseIfNotExist=true"
+        - name: DATABASE_USERNAME             #
+          valueFrom:                          #
+            secretKeyRef:                     #
+              name: concord-secret            #
+              key: MYSQL_USER                 #
+        - name: DATABASE_PASSWORD             #
+          valueFrom:                          #
+            secretKeyRef:                     #
+              name: concord-secret            #
+              key: MYSQL_PASSWORD             #
+        - name: JWT_SECRET                    #
+          valueFrom:                          #
+            secretKeyRef:                     #
+              name: concord-secret            #
+              key: JWT_SECRET                 #
+        - name: KAFKA_BOOTSTRAP_SERVERS       #
+          value: "kafka:9092"                 #
+        resources:                            # Limites adequados para o cluster Minikube (2500 MB)
+          requests:                           #
+            memory: "256Mi"                   #
+            cpu: "100m"                       #
+          limits:                             #
+            memory: "512Mi"                   #
+            cpu: "500m"                       #
+        startupProbe:                         # Dá tempo para o Spring Boot + Hibernate inicializarem
+          tcpSocket:                          #
             port: http                        #
-          initialDelaySeconds: 3              #
+          initialDelaySeconds: 10             #
           periodSeconds: 5                    #
+          failureThreshold: 24                #
+        readinessProbe:                       # Só recebe tráfego quando a porta 8082 estiver aceitando conexões
+          tcpSocket:                          #
+            port: http                        #
+          periodSeconds: 5                    #
+          failureThreshold: 3                 #
+        livenessProbe:                        # Reinicia o pod se a aplicação travar
+          tcpSocket:                          #
+            port: http                        #
+          periodSeconds: 10                   #
+          failureThreshold: 3                 #

@@ -1,0 +1,12 @@
+apiVersion: v1          # Versão da API
+kind: Service           # Tipo de manifesto
+metadata:               #
+  name: mysql           # Identificação única do objeto (DNS interno: mysql.concord.svc.cluster.local)
+spec:                   # Especificação do objeto
+  clusterIP: None       # Headless Service: obrigatório para identidade de rede estável do StatefulSet
+  selector:             #
+    app: mysql          # Pods com esta label recebem o tráfego
+  ports:                #
+    - name: mysql       # Nome da porta do serviço
+      port: 3306        # Porta de entrada do serviço
+      targetPort: mysql # Porta do container (containerPort 3306)
