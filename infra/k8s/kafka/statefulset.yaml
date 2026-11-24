@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+spec:
+  serviceName: kafka-headless
+  replicas: 3
+  podManagementPolicy: Parallel
+
+  selector:
+    matchLabels:
+      app: kafka
+
+  template:
+    metadata:
+      labels:
+        app: kafka
+
+    spec:
+      securityContext:
+        fsGroup: 1000
+        
+      containers:
+      - name: kafka
+        image: apache/kafka:4.0.0
+        command: ["/bin/sh", "-c"]
+        args:
+        - export KAFKA_NODE_ID="${HOSTNAME##*-}" && exec /etc/kafka/docker/run
+        ports:
+        - containerPort: 9092
+          name: kafka
+        - containerPort: 9093
+          name: controller
+        envFrom:
+        - configMapRef:
+            name: kafka-config
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: "PLAINTEXT://$(POD_NAME).kafka-headless:9092"
+        readinessProbe:
+          tcpSocket:
+            port: 9092
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "768Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/kafka/data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi

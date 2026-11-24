@@ -5,9 +5,10 @@ namespace: concord
 
 resources:
   - namespace.yaml
-  # - ingress.yaml
+  - ingress.yaml
   - mysql/
   - webserver/
+  - kafka/
 
 secretGenerator:
   - name: concord-secret

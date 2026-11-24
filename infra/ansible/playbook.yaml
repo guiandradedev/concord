@@ -60,7 +60,8 @@
 
     - name: Iniciar minikube com driver Docker
       command: >
-        minikube start --driver=docker --cpus=2 --memory=2500
+        minikube start --driver=docker --cpus=2 --memory=3000
+        --kubernetes-version=v1.31.0
         --ports=80:80 --ports=443:443
       when: mk_status.rc != 0
 

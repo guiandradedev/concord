@@ -15,5 +15,5 @@ done
   --create \
   --if-not-exists \
   --topic my-topic \
-  --partitions 1 \
-  --replication-factor 1
+  --partitions 3 \
+  --replication-factor 3
