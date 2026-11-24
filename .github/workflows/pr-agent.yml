@@ -26,10 +26,10 @@ jobs:
         uses: the-pr-agent/pr-agent@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          config.model: "ollama/qwen:4b"
+          config.model: ${{ vars.PR_AGENT_MODEL || 'ollama/qwen:4b' }}
           config.fallback_models: '[]'
           config.custom_model_max_tokens: "32768"
-          OLLAMA.API_BASE: "http://localhost:11434"
+          OLLAMA.API_BASE: ${{ vars.OLLAMA_API_BASE || 'http://172.17.0.1:11434' }}
           github_action_config.auto_review: "true"
           github_action_config.auto_describe: "true"
           github_action_config.auto_improve: "true"
