@@ -17,3 +17,4 @@ data:                                         # Configurações fornecidas por v
   KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"    # Quantidade mínima de réplicas sincronizadas nas transações
   KAFKA_DEFAULT_REPLICATION_FACTOR: "1"       # Replicação padrão dos novos tópicos
   KAFKA_MIN_INSYNC_REPLICAS: "1"              # Quantidade mínima de réplicas sincronizadas para aceitar escritas
+  KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"     # Permite criação automática de tópicos caso necessário

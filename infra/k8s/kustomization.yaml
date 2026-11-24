@@ -9,6 +9,8 @@ resources:
   - mysql/
   - webserver/
   - kafka/
+  - realtime-gateway/
+  - frontend/
 
 secretGenerator:
   - name: concord-secret

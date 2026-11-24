@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1                       # Versão da API
+kind: Ingress                                          # Tipo de manifesto
+metadata:                                              #
+  name: realtime-gateway                               # Identificação única do objeto
+  annotations:                                         #
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600" # Mantém conexões WebSocket abertas
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600" #
+spec:                                                  #
+  ingressClassName: nginx                              # Controlador criado pelo addon ingress do minikube
+  rules:                                               #
+  - http:                                              #
+      paths:                                           #
+      - path: /socket.io                               # Tráfego Socket.IO (polling + upgrade WebSocket)
+        pathType: Prefix                               #
+        backend:                                       #
+          service:                                     #
+            name: realtime-gateway                     # Serviço do realtime-gateway
+            port:                                      #
+              number: 3000                             #

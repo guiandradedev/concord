@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1 # Versão da API do Kustomize
+kind: Kustomization                         # Tipo do manifesto
+
+namespace: concord                          # Namespace onde os recursos serão aplicados
+
+resources:                                  # Manifestos gerenciados pelo componente
+  - deployment.yaml                         # Deployment do frontend React Router
+  - service.yaml                            # Service interno do frontend
