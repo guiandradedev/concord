@@ -60,7 +60,7 @@
 
     - name: Iniciar minikube com driver Docker
       command: >
-        minikube start --driver=docker --cpus=2 --memory=3000
+        minikube start --driver=docker --cpus=2 --memory=2800
         --kubernetes-version=v1.31.0
         --ports=80:80 --ports=443:443
       when: mk_status.rc != 0
@@ -93,20 +93,27 @@
     - name: Aplicar manifests
       command: kubectl apply -k {{ project_dir }}/k8s
 
+    - name: Aguardar StatefulSet do Kafka ficar pronto
+      command: kubectl rollout status statefulset/kafka -n concord --timeout=300s
+      changed_when: false
+
+    - name: Executar inicialização dos tópicos Kafka
+      block:
+        - name: Copiar script de inicialização dos tópicos para o Kafka
+          command: >
+            kubectl cp {{ project_dir }}/kafka/init-topics.sh
+            concord/kafka-0:/tmp/init-topics.sh
+        - name: Executar script de inicialização dos tópicos no Kafka
+          command: >
+            kubectl exec kafka-0 -n concord --
+            /bin/bash /tmp/init-topics.sh
+          changed_when: false
+
     - name: Aguardar workloads ficarem disponíveis
       block:
         - name: Aguardar StatefulSet do MySQL ficar pronto
           command: kubectl rollout status statefulset/mysql -n concord --timeout=300s
           changed_when: false
-
-        - name: Aguardar deployments ficarem disponíveis
-          command: kubectl wait --for=condition=available deploy --all -n concord --timeout=300s
-          changed_when: false
-
-        - name: Aguardar StatefulSet do MySQL ficar pronto
-          command: kubectl rollout status statefulset/mysql -n concord --timeout=300s
-          changed_when: false
-          
         - name: Aguardar deployments ficarem disponíveis
           command: kubectl wait --for=condition=available deploy --all -n concord --timeout=300s
           changed_when: false

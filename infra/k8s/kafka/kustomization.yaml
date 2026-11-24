@@ -1,10 +1,10 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1 # Versão da API
+kind: Kustomization                         # Tipo do manifesto
 
-namespace: concord 
+namespace: concord                          # Namespace onde os recursos serão aplicados
 
-resources:
-  - config-map.yaml
-  - service-headless.yaml
-  - service.yaml
-  - statefulset.yaml
+resources:                                  # Manifestos gerenciados pelo componente Kafka
+  - config-map.yaml                         # Configurações centralizadas do cluster
+  - service-headless.yaml                   # Descoberta DNS direta dos brokers
+  - service.yaml                            # Service usado pelos clientes Kafka
+  - statefulset.yaml                        # StatefulSet com persistência e identidade fixa
