@@ -1,0 +1,35 @@
+# name: "CI: PR-Agent Workflow"
+
+# # Toda vez que houver uma alteração em um PR ou em um comentário ele dispara o workflow
+# on:
+#   pull_request:
+#     types: [opened, reopened, ready_for_review, synchronize]
+#   issue_comment:
+
+# jobs:
+#   pr_agent_job:
+#     # Como o PR-Agent utiliza o github-action[bot] para comentar, dispara o evento somente se não for um bot, evitando loop infinito de comentários
+#     # Sem essa linha, ao analisar um issue comment, ele executa o workflow duas vezes e cancela o primeiro uma vez que o comentário não é um padrão conhecido
+#     if: ${{ github.event.sender.type != 'Bot' }} 
+#     runs-on: self-hosted
+
+#     # Limita as permissões do workflow para apenas leitura de conteúdo, escrita em issues e pull requests, evitando modificações indesejadas no repositório
+#     permissions:
+#       contents: read
+#       issues: write
+#       pull-requests: write
+
+#     name: Executa o agente
+#     steps:
+#       - name: PR Agent action step
+#         id: pragent
+#         uses: the-pr-agent/pr-agent@main
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           config.model: ${{ vars.PR_AGENT_MODEL || 'ollama/qwen:4b' }}
+#           config.fallback_models: '[]'
+#           config.custom_model_max_tokens: "32768"
+#           OLLAMA.API_BASE: ${{ vars.OLLAMA_API_BASE || 'http://172.17.0.1:11434' }}
+#           github_action_config.auto_review: "true"
+#           github_action_config.auto_describe: "true"
+#           github_action_config.auto_improve: "true"
