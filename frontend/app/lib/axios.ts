@@ -1,7 +1,7 @@
 import axios from "axios";
 import { clearAccessToken, getAccessToken, setAccessToken } from "./auth-token";
 
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "/api";
 
 const api = axios.create({
   baseURL: BACKEND_URL,

@@ -1,16 +1,19 @@
-apiVersion: networking.k8s.io/v1        # Versão da API
-kind: Ingress                           # Tipo de manifesto
-metadata:                               #
-  name: webserver                       # Identificação unica do objeto
-spec:                                   #
-  ingressClassName: nginx               # Controlador criado pelo addon ingress do minikube
-  rules:                                #
-  - http:                               # Sem host: responde a qualquer requisição HTTP na porta 80
-      paths:                            #
-      - path: /                         # Todas as rotas
-        pathType: Prefix                #
-        backend:                        # Para onde o tráfego é encaminhado
-          service:                      #
-            name: webserver             # Serviço do webserver
-            port:                       #
-              number: 80                #
+apiVersion: networking.k8s.io/v1 # Versão da API do Ingress
+kind: Ingress                    # Regra de entrada HTTP
+metadata:
+  name: api-ingress              # Ingress dedicado à API
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true" # Permite usar regex no path
+    nginx.ingress.kubernetes.io/rewrite-target: "/$2" # Remove /api antes de encaminhar
+spec:
+  ingressClassName: nginx        # Controlador NGINX do Minikube
+  rules:
+    - http:                      # Sem host: aceita requisições HTTP na porta 80
+        paths:
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific # Path regex definido pelo controlador
+            backend:
+              service:
+                name: webserver  # Serviço da API Spring
+                port:
+                  number: 80

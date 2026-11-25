@@ -6,3 +6,4 @@ namespace: concord                          # Namespace onde os recursos serão 
 resources:                                  # Manifestos gerenciados pelo componente
   - deployment.yaml                         # Deployment do frontend React Router
   - service.yaml                            # Service interno do frontend
+  - ingress.yaml
