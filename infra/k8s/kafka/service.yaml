@@ -1,0 +1,10 @@
+apiVersion: v1                            # Versão da API
+kind: Service                             # Tipo do manifesto
+metadata:                                 #
+  name: kafka                             # Nome usado pelos clientes Kafka
+spec:                                     # Especificação do serviço
+  selector:                               # Encaminha o tráfego para os pods Kafka
+    app: kafka                            #
+  ports:                                  #
+  - name: kafka                           # Nome da porta
+    port: 9092                            # Porta usada pelos clientes

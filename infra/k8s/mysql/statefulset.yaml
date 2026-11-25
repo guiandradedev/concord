@@ -1,0 +1,88 @@
+apiVersion: apps/v1                         # Versão da API
+kind: StatefulSet                           # Tipo do manifesto (ideal para banco de dados com estado persistente)
+metadata:                                   #
+  name: mysql                               # Identificação única do objeto (gera o pod mysql-0)
+spec:                                       # Especificação do objeto
+  serviceName: mysql                        # Headless Service que fornece identidade DNS estável ao pod
+  replicas: 1                               # Quantidade de instâncias do banco
+  selector:                                 # Identifica quais pods pertencem a este StatefulSet
+    matchLabels:                            #
+      app: mysql                            #
+  template:                                 # Modelo do pod a ser criado
+    metadata:                               #
+      labels:                               # Qualquer pod criado terá a label app=mysql
+        app: mysql                          #
+    spec:                                   # Especificação do pod
+      containers:                           #
+        - name: mysql                       # Nome do container
+          image: mysql:8.0                  # Imagem oficial do MySQL 8.0
+          ports:                            # Portas que o container irá expor
+            - containerPort: 3306           # Porta padrão do MySQL
+              name: mysql                   #
+          env:                              # Variáveis injetadas seletivamente do Secret centralizado
+            - name: MYSQL_ROOT_PASSWORD     # Senha do usuário root
+              valueFrom:                    #
+                secretKeyRef:               #
+                  name: concord-secret      # Secret gerado pelo Kustomize a partir de infra/k8s/.env
+                  key: MYSQL_ROOT_PASSWORD  #
+            - name: MYSQL_DATABASE          # Banco criado automaticamente na primeira inicialização
+              valueFrom:                    #
+                secretKeyRef:               #
+                  name: concord-secret      #
+                  key: MYSQL_DATABASE       #
+            - name: MYSQL_USER              # Usuário dedicado da aplicação
+              valueFrom:                    #
+                secretKeyRef:               #
+                  name: concord-secret      #
+                  key: MYSQL_USER           #
+            - name: MYSQL_PASSWORD          # Senha do usuário dedicado
+              valueFrom:                    #
+                secretKeyRef:               #
+                  name: concord-secret      #
+                  key: MYSQL_PASSWORD       #
+          volumeMounts:                     # Montagem do volume persistente no container
+            - name: mysql-data              # Nome do template de volume definido abaixo
+              mountPath: /var/lib/mysql     # Diretório onde o MySQL armazena os dados
+          resources:                        # Limites adequados para o cluster Minikube (2500 MB)
+            requests:                       # Recursos mínimos garantidos
+              memory: "256Mi"               #
+              cpu: "100m"                   #
+            limits:                         # Teto máximo de consumo
+              memory: "512Mi"               #
+              cpu: "500m"                   #
+          startupProbe:                     # Dá tempo (até 130s) para a primeira inicialização do MySQL
+            exec:                           #
+              command:                      # Testa conexão TCP (127.0.0.1) em vez de socket Unix local
+                - sh                        #
+                - -c                        #
+                - mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD" --silent
+            initialDelaySeconds: 10         #
+            periodSeconds: 5                #
+            failureThreshold: 24            #
+          readinessProbe:                   # Só recebe tráfego quando o MySQL responder ao ping
+            exec:                           #
+              command:                      #
+                - sh                        #
+                - -c                        #
+                - mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD" --silent
+            periodSeconds: 5                #
+            timeoutSeconds: 3               #
+            failureThreshold: 3             #
+          livenessProbe:                    # Reinicia o container se o MySQL travar
+            exec:                           #
+              command:                      #
+                - sh                        #
+                - -c                        #
+                - mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD" --silent
+            periodSeconds: 10               #
+            timeoutSeconds: 5               #
+            failureThreshold: 3             #
+  volumeClaimTemplates:                     # Cria automaticamente um PVC dedicado por réplica (mysql-data-mysql-0)
+    - metadata:                             #
+        name: mysql-data                    #
+      spec:                                 #
+        accessModes:                        #
+          - ReadWriteOnce                   # Montável em leitura/escrita por um nó por vez
+        resources:                          #
+          requests:                         #
+            storage: 1Gi                    # Tamanho do disco persistente alocado no StorageClass padrão

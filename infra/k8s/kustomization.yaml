@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1 # Versão da API do Kustomize
+kind: Kustomization                         # Overlay principal do cluster
+
+namespace: concord                          # Namespace aplicado aos recursos
+
+resources:                                  # Manifestos e overlays de cada componente
+  - namespace.yaml                          # Cria o namespace do sistema
+  - mysql/                                   # Banco de dados
+  - webserver/                               # API HTTP
+  - kafka/                                   # Broker e configuração
+  - realtime-gateway/                       # Gateway Socket.IO
+  - frontend/                                # Aplicação web
+
+secretGenerator:                             # Gera o Secret com variáveis locais
+  - name: concord-secret                     # Secret consumido pelos workloads
+    envs:
+      - .env                                 # Arquivo de ambiente usado como origem

@@ -1,0 +1,20 @@
+apiVersion: v1                                # Versão da API
+kind: ConfigMap                               # Tipo do manifesto
+metadata:                                     #
+  name: kafka-config                          # Nome usado pelo StatefulSet
+data:                                         # Configurações fornecidas por variáveis de ambiente
+  CLUSTER_ID: "ac30ffd6-cb32-4154-9966-33dbc8626ce1" # Identificador único do cluster KRaft
+  KAFKA_PROCESS_ROLES: "broker,controller"    # Cada broker também participa do quorum do controller
+  KAFKA_CONTROLLER_QUORUM_VOTERS: "0@kafka-0.kafka-headless:9093" # Nó participante do quorum KRaft
+  KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093" # Portas de comunicação com clientes e controllers
+  KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER" # Listener usado pelo protocolo KRaft
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT" # Protocolos de segurança dos listeners
+  KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT" # Listener usado na comunicação entre brokers
+  KAFKA_LOG_DIRS: "/var/lib/kafka/data"       # Diretório persistente dos dados Kafka
+  KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"       # Limites de heap da JVM para reduzir o consumo de memória
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1" # Replicação do tópico interno de offsets
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1" # Replicação do log interno de transações
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"    # Quantidade mínima de réplicas sincronizadas nas transações
+  KAFKA_DEFAULT_REPLICATION_FACTOR: "1"       # Replicação padrão dos novos tópicos
+  KAFKA_MIN_INSYNC_REPLICAS: "1"              # Quantidade mínima de réplicas sincronizadas para aceitar escritas
+  KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"     # Permite criação automática de tópicos caso necessário

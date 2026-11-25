@@ -1,0 +1,14 @@
+apiVersion: v1                            # Versão da API
+kind: Service                             # Tipo do manifesto
+metadata:                                 #
+  name: kafka-headless                    # Nome usado pela descoberta DNS dos brokers
+spec:                                     # Especificação do serviço headless
+  clusterIP: None                         # Remove o IP virtual e permite acesso direto aos pods
+  publishNotReadyAddresses: true          # Publica os pods antes de ficarem prontos para o quorum KRaft
+  selector:                               # Associa o serviço aos pods Kafka
+    app: kafka                            #
+  ports:                                  #
+  - name: kafka                           # Porta usada pelos clientes
+    port: 9092                            #
+  - name: controller                      # Porta usada pelo KRaft
+    port: 9093                            #

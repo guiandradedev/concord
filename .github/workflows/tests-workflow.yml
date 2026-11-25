@@ -1,17 +1,11 @@
-name: CI Test Workflow
+name: "CI: Test Workflow"
 
-# Toda vez que fazer um push ou PR na main ou na development inicia uma execução do workflow
-on: 
-    push:
-        branches:
-            - main
-            - development
-            - tests/gateway
-    pull_request:
-        branches:
-            - main
-            - development
-        types: [ opened, synchronize, reopened ]
+# Workflow é executado quando é chamado por outro workflow
+on:
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
     gateway-test:

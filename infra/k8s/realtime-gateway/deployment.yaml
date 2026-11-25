@@ -1,0 +1,59 @@
+apiVersion: apps/v1                                  # Versão da API
+kind: Deployment                                     # Tipo do manifesto
+metadata:                                            #
+  name: realtime-gateway                             # Identificação única do objeto
+spec:                                                # Especificação do objeto
+  selector:                                          # Identifica quais pods pertencem a este deployment
+    matchLabels:                                     #
+      app: realtime-gateway                          #
+  replicas: 1                                        # Deve permanecer em 1 (sessões de usuários ficam em memória)
+  template:                                          # Modelo do pod a ser criado
+    metadata:                                        #
+      labels:                                        # Qualquer pod criado terá a label app=realtime-gateway
+        app: realtime-gateway                        #
+    spec:                                            # Especificação do pod
+      initContainers:                                # Aguarda o Kafka responder e o tópico my-topic existir
+      - name: wait-for-kafka-topic                   #
+        image: apache/kafka:4.0.0                    # Reutiliza a imagem do Kafka já presente no cluster
+        command: ["/bin/sh", "-c"]                   #
+        args:                                        #
+        - |                                          #
+          until /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list 2>/dev/null | grep -qx "my-topic"; do
+            echo "Aguardando Kafka e tópico my-topic...";
+            sleep 3;
+          done
+      containers:                                    #
+      - name: realtime-gateway                       # Nome do container
+        image: guiiandradedev/realtime-gateway:main  # Imagem publicada no Docker Hub pelo CI
+        imagePullPolicy: Always                      # Sempre verifica o Docker Hub para pegar a versão mais recente
+        ports:                                       # Portas expostas pelo container
+        - containerPort: 3000                        # Porta padrão do Express + Socket.IO
+          name: http                                 #
+        env:                                         # Variáveis de ambiente do gateway
+        - name: PORT                                 # Porta de escuta do servidor HTTP/WebSocket
+          value: "3000"                              #
+        - name: KAFKA_CLIENT_ID                      # Identificador do cliente no cluster Kafka
+          value: "realtime-gateway-client"           #
+        - name: KAFKA_BROKERS                        # Endereço do Service interno do Kafka no namespace concord
+          value: "kafka:9092"                        #
+        resources:                                   # Limites adequados para o cluster Minikube (2800 MB)
+          requests:                                  #
+            memory: "128Mi"                          #
+            cpu: "50m"                               #
+          limits:                                    #
+            memory: "256Mi"                          #
+            cpu: "250m"                              #
+        readinessProbe:                              # Só recebe tráfego quando /health responder 200 OK
+          httpGet:                                   #
+            path: /health                            # Endpoint de saúde definido em src/socket/server.ts
+            port: http                               #
+          initialDelaySeconds: 5                     #
+          periodSeconds: 5                           #
+          failureThreshold: 3                        #
+        livenessProbe:                               # Reinicia o pod se o processo travar
+          httpGet:                                   #
+            path: /health                            #
+            port: http                               #
+          initialDelaySeconds: 15                    #
+          periodSeconds: 10                          #
+          failureThreshold: 3                        #

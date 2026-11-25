@@ -1,0 +1,66 @@
+apiVersion: apps/v1                         # Versão da API
+kind: StatefulSet                           # Tipo do manifesto
+metadata:                                   #
+  name: kafka                               # Identificação única do StatefulSet
+spec:                                       # Especificação do objeto
+  serviceName: kafka-headless               # Serviço usado pela identidade DNS dos Pods
+  replicas: 1                               # Quantidade de brokers Kafka
+  podManagementPolicy: OrderedReady         # Inicia o único broker de forma sequencial
+
+  selector:                                 # Identifica quais pods pertencem ao StatefulSet
+    matchLabels:                            #
+      app: kafka                            #
+
+  template:                                 # Modelo usado para criar os Pods
+    metadata:                               #
+      labels:                               # Qualquer pod criado terá a label app=kafka
+        app: kafka                          #
+
+    spec:                                   # Especificação do pod
+      securityContext:                      #
+        fsGroup: 1000                       # Permite acesso compartilhado aos arquivos persistentes
+        
+      containers:                           #
+      - name: kafka                         # Nome do container
+        image: apache/kafka:4.0.0           # Imagem oficial do Apache Kafka
+        command: ["/bin/sh", "-c"]          # Executa o script de inicialização pelo shell
+        args:                               #
+        - export KAFKA_NODE_ID="${HOSTNAME##*-}" && exec /etc/kafka/docker/run # Extrai o ID do nome kafka-0
+        ports:                              # Portas expostas pelo container
+        - containerPort: 9092               # Porta usada pelos clientes Kafka
+          name: kafka                       #
+        - containerPort: 9093               # Porta usada pelo listener do controller KRaft
+          name: controller                  #
+        envFrom:                            # Importa todas as configurações do ConfigMap
+        - configMapRef:                     #
+            name: kafka-config              #
+        env:                                # Variáveis específicas deste pod
+        - name: POD_NAME                    # Nome do pod usado na configuração de listener
+          valueFrom:                        #
+            fieldRef:                       #
+              fieldPath: metadata.name      #
+        - name: KAFKA_ADVERTISED_LISTENERS # Endereço anunciado aos clientes dentro do cluster
+          value: "PLAINTEXT://$(POD_NAME).kafka-headless:9092"
+        readinessProbe:                     # Verifica se o broker aceita conexões
+          tcpSocket:                        #
+            port: 9092                      #
+          initialDelaySeconds: 20           # Aguarda a inicialização antes da primeira verificação
+          periodSeconds: 10                 # Intervalo entre verificações
+        resources:                          # Recursos reservados e limites do pod
+          requests:                         # Recursos mínimos garantidos
+            memory: "512Mi"                 #
+            cpu: "200m"                     #
+          limits:                           # Teto máximo de consumo
+            memory: "768Mi"                 #
+            cpu: "500m"                     #
+        volumeMounts:                       # Montagem do volume persistente
+        - name: data                        # Nome do template de volume definido abaixo
+          mountPath: /var/lib/kafka/data    # Diretório onde o Kafka armazena os dados
+  volumeClaimTemplates:                     # Cria um PVC dedicado para cada réplica
+  - metadata:                               #
+      name: data                            # Nome usado pelo volumeClaimTemplates
+    spec:                                   #
+      accessModes: ["ReadWriteOnce"]        # Montável por leitura e escrita em um único nó
+      resources:                            #
+        requests:                           #
+          storage: 10Gi                     # Tamanho do disco persistente por broker

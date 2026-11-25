@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1 # Versão da API do Kustomize
+kind: Kustomization                         # Tipo do manifesto
+
+namespace: concord                          # Namespace onde todos os recursos serão aplicados
+
+resources:                                  # Manifestos gerenciados por este componente
+  - service.yaml                            # Headless Service para descoberta DNS do MySQL
+  - statefulset.yaml                        # StatefulSet com volume persistente do MySQL

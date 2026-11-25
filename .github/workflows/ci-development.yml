@@ -1,0 +1,17 @@
+name: CI Test Workflow
+
+# Toda vez que fazer um push ou PR na main ou na development inicia uma execução do workflow
+on: 
+    push:
+      branches-ignore:
+        - main # Ignorar push na main, pois já existe um workflow que executa os testes na main, evitar gasto de computação redundante
+    pull_request:
+        branches:
+            - main
+            - development
+        types: [ opened, synchronize, reopened ]
+
+jobs:
+  tests:
+      name: Run Tests
+      uses: ./.github/workflows/tests-workflow.yml

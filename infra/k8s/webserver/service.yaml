@@ -1,0 +1,10 @@
+apiVersion: v1          #
+kind: Service           # Tipo de manifesto
+metadata:               #
+  name: webserver       # Identificação unica do objeto
+spec:                   # Especificação do objeto
+  selector:             #
+    app: webserver      # Pods com esta label recebem o tráfego
+  ports:                #
+  - port: 80            # Porta de entrada do serviço
+    targetPort: http    # Porta do container (containerPort 8080)

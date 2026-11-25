@@ -11,8 +11,7 @@ import {
 import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext";
 
-const REALTIME_GATEWAY_URL =
-    import.meta.env.VITE_REALTIME_GATEWAY_URL ?? "ws://localhost:3000";
+const REALTIME_GATEWAY_URL = import.meta.env.VITE_REALTIME_GATEWAY_URL;
 
 type NewMessageResponse = {
     id: string;
@@ -42,7 +41,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (!isAuthenticated || !user) return;
 
-        const socketInstance = io(REALTIME_GATEWAY_URL, {
+        const socketInstance = io(REALTIME_GATEWAY_URL || window.location.origin, {
             auth: {
                 userId: user.id,
             },
